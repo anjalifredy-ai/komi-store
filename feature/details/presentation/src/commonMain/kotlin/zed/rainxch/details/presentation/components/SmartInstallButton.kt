@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
@@ -97,6 +98,18 @@ fun SmartInstallButton(
         installedApp?.installedVersion?.trim()?.takeIf { it.isNotBlank() }
     val normSelected =
         state.selectedRelease?.tagName?.trim()?.takeIf { it.isNotBlank() }
+
+    // Some maintainers tag releases with path-style strings such as
+    // `com.akylas.documentscanner/android/github/1.21.0/152`. Using the raw
+    // tag in "Install version X" wraps the CTA across two lines and looks
+    // broken. `VersionMath.normalizeVersion` already extracts the
+    // dotted-digit core for these cases (`1.21.0`), so reuse it for the
+    // *display* tag while leaving the actual install pipeline on the raw
+    // tag (which has to match GitHub exactly).
+    val displaySelected =
+        normSelected?.let { tag ->
+            VersionMath.normalizeVersion(tag).takeIf { it.isNotBlank() } ?: tag
+        }
 
     val isSameVersionInstalled =
         isInstalled &&
@@ -247,7 +260,21 @@ fun SmartInstallButton(
                 normInstalled != null &&
                 normSelected != null &&
                 !VersionMath.isExactSameVersion(normInstalled, normSelected) -> {
-                stringResource(Res.string.install_version, normSelected)
+                stringResource(Res.string.install_version, displaySelected ?: normSelected)
+            }
+
+            // Not installed yet, but the user reached for the release picker
+            // and chose something other than the newest available release —
+            // the CTA should reflect *which* version will install instead of
+            // misleading them with "Install latest". The latest tag comes
+            // from the head of `allReleases` (GitHub returns newest-first
+            // by `published_at`); fall through to "Install latest" only when
+            // we genuinely can't tell, or the user is already on the head.
+            normSelected != null &&
+                state.allReleases.firstOrNull()?.tagName?.let { latestTag ->
+                    !VersionMath.isExactSameVersion(latestTag, normSelected)
+                } == true -> {
+                stringResource(Res.string.install_version, displaySelected ?: normSelected)
             }
 
             else -> {
@@ -405,6 +432,8 @@ fun SmartInstallButton(
                                     },
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
 
