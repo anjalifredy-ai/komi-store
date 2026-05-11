@@ -539,7 +539,7 @@
     <string name="battery_optimization_card_open">設定を開く</string>
     <string name="battery_optimization_card_dismiss">後で</string>
 
-    <string name="add_by_link">リンクで追加</string>
+    <string name="add_by_link">アプリを追跡</string>
     <string name="link_app_title">アプリをリポジトリにリンク</string>
     <string name="pick_installed_app">GitHubリポジトリにリンクするインストール済みアプリを選択</string>
     <string name="search_apps_hint">アプリを検索…</string>

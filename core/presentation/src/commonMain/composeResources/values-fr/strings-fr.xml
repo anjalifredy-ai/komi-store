@@ -538,7 +538,7 @@
     <string name="battery_optimization_card_open">Ouvrir les paramètres</string>
     <string name="battery_optimization_card_dismiss">Plus tard</string>
 
-    <string name="add_by_link">Ajouter par lien</string>
+    <string name="add_by_link">Suivre une appli</string>
     <string name="link_app_title">Lier l'app au dépôt</string>
     <string name="pick_installed_app">Choisissez une app installée à lier à un dépôt GitHub</string>
     <string name="search_apps_hint">Rechercher des apps…</string>

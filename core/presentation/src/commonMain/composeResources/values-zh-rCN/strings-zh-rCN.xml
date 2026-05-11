@@ -540,7 +540,7 @@
     <string name="battery_optimization_card_open">打开设置</string>
     <string name="battery_optimization_card_dismiss">稍后</string>
 
-    <string name="add_by_link">通过链接添加</string>
+    <string name="add_by_link">追踪应用</string>
     <string name="link_app_title">将应用链接到仓库</string>
     <string name="pick_installed_app">选择一个已安装的应用以链接到GitHub仓库</string>
     <string name="search_apps_hint">搜索应用…</string>

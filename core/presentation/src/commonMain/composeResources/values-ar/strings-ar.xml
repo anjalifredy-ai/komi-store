@@ -577,7 +577,7 @@
     <string name="battery_optimization_card_open">فتح الإعدادات</string>
     <string name="battery_optimization_card_dismiss">ربما لاحقاً</string>
 
-    <string name="add_by_link">إضافة عبر رابط</string>
+    <string name="add_by_link">تتبّع تطبيقًا</string>
     <string name="link_app_title">ربط التطبيق بالمستودع</string>
     <string name="pick_installed_app">اختر تطبيقاً مثبتاً لربطه بمستودع GitHub</string>
     <string name="search_apps_hint">البحث عن التطبيقات…</string>

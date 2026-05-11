@@ -574,7 +574,7 @@
     <string name="battery_optimization_card_open">Ayarları aç</string>
     <string name="battery_optimization_card_dismiss">Sonra</string>
 
-    <string name="add_by_link">Bağlantıyla ekle</string>
+    <string name="add_by_link">Uygulama izle</string>
     <string name="link_app_title">Uygulamayı depoya bağla</string>
     <string name="pick_installed_app">GitHub deposuna bağlamak için yüklü bir uygulama seçin</string>
     <string name="search_apps_hint">Uygulama ara…</string>

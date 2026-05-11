@@ -576,7 +576,7 @@
     <string name="battery_optimization_card_open">সেটিংস খুলুন</string>
     <string name="battery_optimization_card_dismiss">পরে</string>
 
-    <string name="add_by_link">লিঙ্ক দিয়ে যোগ করুন</string>
+    <string name="add_by_link">অ্যাপ ট্র্যাক করুন</string>
     <string name="link_app_title">অ্যাপ রিপোজিটরিতে লিঙ্ক করুন</string>
     <string name="pick_installed_app">GitHub রিপোজিটরিতে লিঙ্ক করতে একটি ইনস্টল করা অ্যাপ বেছে নিন</string>
     <string name="search_apps_hint">অ্যাপ খুঁজুন…</string>

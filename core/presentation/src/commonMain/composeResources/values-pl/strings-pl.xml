@@ -540,7 +540,7 @@
     <string name="battery_optimization_card_open">Otwórz ustawienia</string>
     <string name="battery_optimization_card_dismiss">Później</string>
 
-    <string name="add_by_link">Dodaj przez link</string>
+    <string name="add_by_link">Śledź aplikację</string>
     <string name="link_app_title">Połącz aplikację z repozytorium</string>
     <string name="pick_installed_app">Wybierz zainstalowaną aplikację, aby połączyć ją z repozytorium GitHub</string>
     <string name="search_apps_hint">Szukaj aplikacji…</string>

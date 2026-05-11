@@ -540,7 +540,7 @@
     <string name="battery_optimization_card_open">Открыть настройки</string>
     <string name="battery_optimization_card_dismiss">Позже</string>
 
-    <string name="add_by_link">Добавить по ссылке</string>
+    <string name="add_by_link">Отслеживать приложение</string>
     <string name="link_app_title">Привязать приложение к репозиторию</string>
     <string name="pick_installed_app">Выберите установленное приложение для привязки к репозиторию GitHub</string>
     <string name="search_apps_hint">Поиск приложений…</string>
