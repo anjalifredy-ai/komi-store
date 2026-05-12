@@ -88,7 +88,7 @@ jobs:
         uses: signpath/github-action-submit-signing-request@v1
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
-          organization-id: '1ecf111e-323c-4703-bc9d-f0fb683bb4dc'
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
           project-slug: 'GitHub-Store'
           signing-policy-slug: 'test-signing'
           artifact-configuration-slug: 'initial-version'
