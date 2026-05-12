@@ -124,6 +124,15 @@ interface TweaksRepository {
     suspend fun setChannelChipCoachmarkShown(shown: Boolean)
 
     /**
+     * When true, the release-assets picker on Details shows installers
+     * for every OS (grouped by platform section). When false (default),
+     * only assets installable on the current platform are listed.
+     */
+    fun getShowAllPlatforms(): Flow<Boolean>
+
+    suspend fun setShowAllPlatforms(enabled: Boolean)
+
+    /**
      * One-shot watermark for the battery-optimization prompt on
      * aggressive-OEM ROMs (Oppo / OnePlus / Realme / Xiaomi / vivo /
      * Honor). `false` until the user has either granted the exemption

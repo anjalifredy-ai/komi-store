@@ -112,6 +112,15 @@ fun LazyListScope.header(
                         selectedAsset = state.primaryAsset,
                         isPickerVisible = state.isReleaseSelectorVisible,
                         pinnedVariant = state.installedApp?.preferredAssetVariant,
+                        showAllPlatforms = state.showAllPlatforms,
+                        crossPlatformAssets =
+                            state.selectedRelease
+                                ?.assets
+                                ?.filter {
+                                    zed.rainxch.core.domain.util
+                                        .assetPlatformOf(it.name) != null
+                                }
+                                .orEmpty(),
                         onAction = onAction,
                         modifier = Modifier.weight(.65f),
                     )

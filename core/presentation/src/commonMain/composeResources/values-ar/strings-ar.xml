@@ -1165,4 +1165,10 @@
     <string name="open_on_github">فتح في GitHub</string>
     <string name="mark_as_viewed">وضع علامة مشاهد</string>
     <string name="mark_as_unviewed">إلغاء علامة مشاهد</string>
+    <string name="show_all_platforms_label">إظهار جميع المنصات</string>
+    <string name="platform_section_android">Android</string>
+    <string name="platform_section_windows">Windows</string>
+    <string name="platform_section_macos">macOS</string>
+    <string name="platform_section_linux">Linux</string>
+    <string name="saved_for_transfer_hint">منصة أخرى — يفتح في المتصفح للحفظ والنقل</string>
 </resources>

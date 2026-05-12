@@ -352,6 +352,17 @@ class TweaksRepositoryImpl(
         }
     }
 
+    override fun getShowAllPlatforms(): Flow<Boolean> =
+        preferences.data.map { prefs ->
+            prefs[SHOW_ALL_PLATFORMS_KEY] ?: false
+        }
+
+    override suspend fun setShowAllPlatforms(enabled: Boolean) {
+        preferences.edit { prefs ->
+            prefs[SHOW_ALL_PLATFORMS_KEY] = enabled
+        }
+    }
+
     override fun getBatteryOptimizationPromptDismissed(): Flow<Boolean> =
         preferences.data.map { prefs ->
             prefs[BATTERY_OPT_PROMPT_DISMISSED_KEY] ?: false
@@ -457,6 +468,7 @@ class TweaksRepositoryImpl(
         private val EXTERNAL_IMPORT_BANNER_DISMISSED_AT_KEY = intPreferencesKey("external_import_banner_dismissed_at")
         private val APK_INSPECT_COACHMARK_SHOWN_KEY = booleanPreferencesKey("apk_inspect_coachmark_shown")
         private val CHANNEL_CHIP_COACHMARK_SHOWN_KEY = booleanPreferencesKey("channel_chip_coachmark_shown")
+        private val SHOW_ALL_PLATFORMS_KEY = booleanPreferencesKey("show_all_platforms")
         private val BATTERY_OPT_PROMPT_DISMISSED_KEY = booleanPreferencesKey("battery_opt_prompt_dismissed")
         private val LAST_SEEN_WHATS_NEW_VERSION_CODE_KEY = intPreferencesKey("last_seen_whats_new_version_code")
         private val ANNOUNCEMENTS_DISMISSED_IDS_KEY = stringSetPreferencesKey("announcements_dismissed_ids")

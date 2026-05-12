@@ -1134,4 +1134,10 @@
     <string name="open_on_github">Открыть на GitHub</string>
     <string name="mark_as_viewed">Отметить как просмотренный</string>
     <string name="mark_as_unviewed">Снять отметку</string>
+    <string name="show_all_platforms_label">Показать все платформы</string>
+    <string name="platform_section_android">Android</string>
+    <string name="platform_section_windows">Windows</string>
+    <string name="platform_section_macos">macOS</string>
+    <string name="platform_section_linux">Linux</string>
+    <string name="saved_for_transfer_hint">Другая платформа — открывается в браузере для сохранения и переноса</string>
 </resources>

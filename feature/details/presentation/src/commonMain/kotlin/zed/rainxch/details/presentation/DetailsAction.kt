@@ -159,4 +159,17 @@ sealed interface DetailsAction {
      * Persists so the coachmark only ever shows once.
      */
     data object OnAcknowledgeChannelChipCoachmark : DetailsAction
+
+    /** Flip the "Show all platforms" picker setting (persisted globally). */
+    data object OnToggleShowAllPlatforms : DetailsAction
+
+    /**
+     * Download a non-current-platform asset for transfer to another
+     * device. Routes to the user's browser so the file lands in their
+     * normal Downloads folder.
+     */
+    data class OnDownloadForTransfer(
+        val assetUrl: String,
+        val assetName: String,
+    ) : DetailsAction
 }

@@ -134,6 +134,13 @@ data class DetailsState(
      * `ChannelChip` so users discover the per-app channel toggle.
      */
     val isChannelChipCoachmarkPending: Boolean = false,
+    /**
+     * Mirrors `TweaksRepository.getShowAllPlatforms()`. When true the
+     * release-assets picker lists installers for every OS (grouped by
+     * section); the install button still operates on the current
+     * platform's primary asset.
+     */
+    val showAllPlatforms: Boolean = false,
 ) {
     val filteredReleases: List<GithubRelease>
         get() =

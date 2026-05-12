@@ -70,19 +70,29 @@ fun ReleaseAssetsPicker(
     selectedAsset: GithubAsset? = null,
     isPickerVisible: Boolean = false,
     pinnedVariant: String? = null,
+    showAllPlatforms: Boolean = false,
+    crossPlatformAssets: List<GithubAsset> = emptyList(),
 ) {
-    val isPickerEnabled by remember(assetsList) {
-        derivedStateOf { assetsList.isNotEmpty() }
+    val isPickerEnabled by remember(assetsList, crossPlatformAssets, showAllPlatforms) {
+        derivedStateOf {
+            if (showAllPlatforms) crossPlatformAssets.isNotEmpty() else assetsList.isNotEmpty()
+        }
     }
 
     ReleaseAssetsItemsPicker(
         showPicker = isPickerVisible,
         assetsList = assetsList,
+        crossPlatformAssets = crossPlatformAssets,
+        showAllPlatforms = showAllPlatforms,
         selectedAsset = selectedAsset,
         pinnedVariant = pinnedVariant,
         onDismiss = { onAction(DetailsAction.ToggleReleaseAssetsPicker) },
         onSelect = { onAction(DetailsAction.SelectDownloadAsset(it)) },
         onUnpin = { onAction(DetailsAction.UnpinPreferredVariant) },
+        onToggleShowAllPlatforms = { onAction(DetailsAction.OnToggleShowAllPlatforms) },
+        onDownloadForTransfer = { asset ->
+            onAction(DetailsAction.OnDownloadForTransfer(asset.downloadUrl, asset.name))
+        },
     )
 
     Column(
@@ -127,16 +137,20 @@ fun ReleaseAssetsPicker(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ReleaseAssetsItemsPicker(
     assetsList: List<GithubAsset>,
+    crossPlatformAssets: List<GithubAsset>,
+    showAllPlatforms: Boolean,
     selectedAsset: GithubAsset?,
     pinnedVariant: String?,
     showPicker: Boolean,
     onDismiss: () -> Unit,
     onSelect: (GithubAsset) -> Unit,
     onUnpin: () -> Unit,
+    onToggleShowAllPlatforms: () -> Unit,
+    onDownloadForTransfer: (GithubAsset) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!showPicker) return
@@ -199,13 +213,111 @@ private fun ReleaseAssetsItemsPicker(
                 }
             }
 
+            // Cross-platform toggle. Persisted globally — flipping here
+            // changes every Details screen's picker behaviour for this
+            // user. Off = current-OS assets only; On = grouped sections
+            // for Android / Windows / macOS / Linux.
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(Res.string.show_all_platforms_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                androidx.compose.material3.Switch(
+                    checked = showAllPlatforms,
+                    onCheckedChange = { onToggleShowAllPlatforms() },
+                )
+            }
+
             HorizontalDivider()
 
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(vertical = 8.dp),
             ) {
-                if (assetsList.isNotEmpty()) {
+                if (showAllPlatforms) {
+                    // Group all known-platform assets by detected OS,
+                    // emit a labelled section per group. Installable
+                    // assets keep their normal select-to-install flow;
+                    // other-platform assets route to a browser download
+                    // for transfer to another device.
+                    val groups: Map<zed.rainxch.core.domain.model.DiscoveryPlatform, List<GithubAsset>> =
+                        crossPlatformAssets
+                            .groupBy {
+                                zed.rainxch.core.domain.util.assetPlatformOf(it.name)
+                            }
+                            .filterKeys { it != null }
+                            .mapKeys { it.key!! }
+                    if (groups.isEmpty()) {
+                        item {
+                            Text(
+                                text = stringResource(Res.string.no_assets_in_list),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            )
+                        }
+                    } else {
+                        val ordered =
+                            listOf(
+                                zed.rainxch.core.domain.model.DiscoveryPlatform.Android to Res.string.platform_section_android,
+                                zed.rainxch.core.domain.model.DiscoveryPlatform.Windows to Res.string.platform_section_windows,
+                                zed.rainxch.core.domain.model.DiscoveryPlatform.Macos to Res.string.platform_section_macos,
+                                zed.rainxch.core.domain.model.DiscoveryPlatform.Linux to Res.string.platform_section_linux,
+                            )
+                        ordered.forEach { (platform, labelRes) ->
+                            val assets = groups[platform].orEmpty()
+                            if (assets.isEmpty()) return@forEach
+                            item(key = "section-${platform.name}") {
+                                Text(
+                                    text = stringResource(labelRes),
+                                    style = MaterialTheme.typography.labelLargeEmphasized,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                )
+                            }
+                            items(items = assets, key = { it.id }) { asset ->
+                                val isInstallableHere =
+                                    assetsList.any { it.id == asset.id }
+                                ReleaseAssetItem(
+                                    asset = asset,
+                                    isSelected = asset.id == selectedAsset?.id && isInstallableHere,
+                                    isPinned = false,
+                                    onClick = {
+                                        if (isInstallableHere) {
+                                            onSelect(asset)
+                                        } else {
+                                            onDownloadForTransfer(asset)
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                if (!isInstallableHere) {
+                                    Text(
+                                        text = stringResource(Res.string.saved_for_transfer_hint),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier =
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 24.dp, vertical = 2.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else if (assetsList.isNotEmpty()) {
                     items(items = assetsList, key = { it.id }) { asset ->
                         val variantTag = AssetVariant.extract(asset.name)
                         val isPinned =

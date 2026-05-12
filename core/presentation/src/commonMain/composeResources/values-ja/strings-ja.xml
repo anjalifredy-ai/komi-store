@@ -1108,4 +1108,10 @@
     <string name="open_on_github">GitHub で開く</string>
     <string name="mark_as_viewed">既読にする</string>
     <string name="mark_as_unviewed">未読にする</string>
+    <string name="show_all_platforms_label">すべてのプラットフォームを表示</string>
+    <string name="platform_section_android">Android</string>
+    <string name="platform_section_windows">Windows</string>
+    <string name="platform_section_macos">macOS</string>
+    <string name="platform_section_linux">Linux</string>
+    <string name="saved_for_transfer_hint">他のプラットフォーム — ブラウザで開き、転送用に保存します</string>
 </resources>

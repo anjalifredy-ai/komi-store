@@ -1110,4 +1110,10 @@
     <string name="open_on_github">在 GitHub 打开</string>
     <string name="mark_as_viewed">标记为已查看</string>
     <string name="mark_as_unviewed">取消已查看标记</string>
+    <string name="show_all_platforms_label">显示所有平台</string>
+    <string name="platform_section_android">Android</string>
+    <string name="platform_section_windows">Windows</string>
+    <string name="platform_section_macos">macOS</string>
+    <string name="platform_section_linux">Linux</string>
+    <string name="saved_for_transfer_hint">其他平台 — 在浏览器中打开以保存并转移</string>
 </resources>

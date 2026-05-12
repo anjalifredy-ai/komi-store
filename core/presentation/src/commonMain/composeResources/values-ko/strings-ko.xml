@@ -1143,4 +1143,10 @@
     <string name="open_on_github">GitHub에서 열기</string>
     <string name="mark_as_viewed">본 항목으로 표시</string>
     <string name="mark_as_unviewed">본 항목 해제</string>
+    <string name="show_all_platforms_label">모든 플랫폼 표시</string>
+    <string name="platform_section_android">Android</string>
+    <string name="platform_section_windows">Windows</string>
+    <string name="platform_section_macos">macOS</string>
+    <string name="platform_section_linux">Linux</string>
+    <string name="saved_for_transfer_hint">다른 플랫폼 — 전송용 저장을 위해 브라우저에서 열립니다</string>
 </resources>

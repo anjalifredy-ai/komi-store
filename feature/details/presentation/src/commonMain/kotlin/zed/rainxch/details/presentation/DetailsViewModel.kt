@@ -147,6 +147,7 @@ class DetailsViewModel(
                     observeApkInspectCoachmark()
                     observeChannelChipCoachmark()
                     observeCurrentUserForBadge()
+                    observeShowAllPlatforms()
 
                     hasLoadedInitialData = true
                 }
@@ -491,6 +492,30 @@ class DetailsViewModel(
 
             DetailsAction.OnAcknowledgeChannelChipCoachmark -> {
                 acknowledgeChannelChipCoachmark()
+            }
+
+            DetailsAction.OnToggleShowAllPlatforms -> {
+                val next = !_state.value.showAllPlatforms
+                viewModelScope.launch {
+                    try {
+                        tweaksRepository.setShowAllPlatforms(next)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        logger.warn("Toggle show-all-platforms failed: ${e.message}")
+                    }
+                }
+            }
+
+            is DetailsAction.OnDownloadForTransfer -> {
+                // Cross-platform assets land here when the user picks an
+                // installer for a different OS. Browser handles the
+                // actual save-to-Downloads — keeps install plumbing
+                // unchanged and matches existing "open external link"
+                // flows on Details.
+                helper.openUrl(action.assetUrl) { err ->
+                    logger.warn("Open transfer download failed: $err")
+                }
             }
         }
     }
@@ -870,6 +895,14 @@ class DetailsViewModel(
                 firstStable.installedApp?.isReallyInstalled() == true
             if (!installedAtOpen) return@launch
             _state.update { it.copy(isApkInspectCoachmarkPending = true) }
+        }
+    }
+
+    private fun observeShowAllPlatforms() {
+        viewModelScope.launch {
+            tweaksRepository.getShowAllPlatforms().collect { enabled ->
+                _state.update { it.copy(showAllPlatforms = enabled) }
+            }
         }
     }
 

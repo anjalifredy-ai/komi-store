@@ -1150,4 +1150,10 @@
     <string name="open_on_github">GitHub\'da aç</string>
     <string name="mark_as_viewed">Görüldü olarak işaretle</string>
     <string name="mark_as_unviewed">Görülmedi olarak işaretle</string>
+    <string name="show_all_platforms_label">Tüm platformları göster</string>
+    <string name="platform_section_android">Android</string>
+    <string name="platform_section_windows">Windows</string>
+    <string name="platform_section_macos">macOS</string>
+    <string name="platform_section_linux">Linux</string>
+    <string name="saved_for_transfer_hint">Diğer platform — aktarma için kaydetmek üzere tarayıcıda açılır</string>
 </resources>

@@ -12,7 +12,8 @@
         "Silent install via root — Magisk, KernelSU, and APatch users can now install without Shizuku or Dhizuku.",
         "Search in Starred and Favourites — quickly filter long lists by repo name, owner, description, or language.",
         "Self-owned ✓ badge — when you're signed in, repos you own get a verified checkmark on Home and Search cards.",
-        "Hide repository — long-press any repo card on Home or Search to hide it from discovery. The repo stays in your library if you have it installed."
+        "Hide repository — long-press any repo card on Home or Search to hide it from discovery. The repo stays in your library if you have it installed.",
+        "Multi-OS release picker — toggle 'Show all platforms' on the asset picker to grab Android APKs from desktop or Linux .debs from your phone. Other-platform downloads open in your browser to save for transfer."
       ]
     },
     {

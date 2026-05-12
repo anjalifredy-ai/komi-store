@@ -1134,4 +1134,10 @@
     <string name="open_on_github">Otwórz w GitHub</string>
     <string name="mark_as_viewed">Oznacz jako obejrzane</string>
     <string name="mark_as_unviewed">Oznacz jako nieobejrzane</string>
+    <string name="show_all_platforms_label">Pokaż wszystkie platformy</string>
+    <string name="platform_section_android">Android</string>
+    <string name="platform_section_windows">Windows</string>
+    <string name="platform_section_macos">macOS</string>
+    <string name="platform_section_linux">Linux</string>
+    <string name="saved_for_transfer_hint">Inna platforma — otwiera się w przeglądarce, aby zapisać do transferu</string>
 </resources>
