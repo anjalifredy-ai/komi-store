@@ -683,6 +683,12 @@ class SearchViewModel(
             SearchAction.ExploreFromGithub -> {
                 performExplore()
             }
+
+            SearchAction.OnDisableHideSeenForResults -> {
+                viewModelScope.launch {
+                    tweaksRepository.setHideSeenEnabled(false)
+                }
+            }
         }
     }
 

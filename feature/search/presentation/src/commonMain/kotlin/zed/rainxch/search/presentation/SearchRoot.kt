@@ -561,6 +561,35 @@ fun SearchScreen(
                     }
                 }
 
+                // All API hits filtered out by the global "Hide seen" tweak
+                // — results counter still shows the raw total, so without this
+                // banner the user sees "N results found" above an empty grid
+                // and assumes the app is broken (issue #574).
+                if (state.repositories.isNotEmpty() &&
+                    state.visibleRepos.isEmpty() &&
+                    state.isHideSeenEnabled
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = stringResource(Res.string.search_results_hidden_by_seen_filter),
+                            )
+
+                            Spacer(Modifier.height(8.dp))
+
+                            GithubStoreButton(
+                                text = stringResource(Res.string.show_all_results),
+                                onClick = {
+                                    onAction(SearchAction.OnDisableHideSeenForResults)
+                                },
+                            )
+                        }
+                    }
+                }
+
                 if (state.visibleRepos.isNotEmpty()) {
                     val isScrollbarEnabled = LocalScrollbarEnabled.current
                     ScrollbarContainer(

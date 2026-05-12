@@ -73,4 +73,6 @@ sealed interface SearchAction {
     data object OnClearAllHistory : SearchAction
 
     data object ExploreFromGithub : SearchAction
+
+    data object OnDisableHideSeenForResults : SearchAction
 }
