@@ -41,6 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -244,6 +245,7 @@ private fun ProxyDetailsFields(
     onAction: (TweaksAction) -> Unit,
 ) {
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val portValue = form.port
     val isPortInvalid =
         portValue.isNotEmpty() &&
@@ -356,24 +358,33 @@ private fun ProxyDetailsFields(
         ) {
             ProxyTestButton(
                 isInProgress = form.isTestInProgress,
-                enabled = isFormValid && !form.isTestInProgress,
+                // Keep enabled regardless of form validity so the user
+                // never taps a disabled button by accident on the first
+                // press (the previous `isFormValid` gate raced with
+                // the IME-composition-commit step on some Android
+                // keyboards and silently swallowed taps). VM still
+                // validates and surfaces a clear error event.
+                enabled = !form.isTestInProgress,
                 onClick = {
+                    keyboardController?.hide()
                     focusManager.clearFocus()
                     onAction(TweaksAction.OnProxyTest(scope))
                 },
             )
 
             FilledTonalButton(
-                // `clearFocus()` first so the IME commits any pending
-                // keystroke before the save runs — without this the
-                // user sometimes has to tap Save twice on Android,
-                // because the first tap goes to focus dismissal and the
-                // second one actually fires the click.
                 onClick = {
+                    // Hide IME first so any pending composition commits
+                    // synchronously before the VM reads form state.
+                    // `clearFocus()` alone isn't enough on Gboard /
+                    // SwiftKey, which keep characters in a composition
+                    // buffer until focus actually transfers — that's
+                    // what made the user have to tap Save twice.
+                    keyboardController?.hide()
                     focusManager.clearFocus()
                     onAction(TweaksAction.OnProxySave(scope))
                 },
-                enabled = isFormValid && !form.isTestInProgress,
+                enabled = !form.isTestInProgress,
             ) {
                 Icon(
                     imageVector = Icons.Default.Save,
