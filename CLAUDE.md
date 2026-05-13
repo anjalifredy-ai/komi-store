@@ -4,7 +4,7 @@
 
 GitHub Store is a cross-platform app store for GitHub releases, built with **Kotlin Multiplatform (KMP)** and **Compose Multiplatform**. Targets **Android** (min API 26) and **Desktop** (Windows, macOS, Linux via JVM).
 
-Package: `zed.rainxch.githubstore` | Version: 1.6.2 (code 13) | Target SDK: 36
+Package: `zed.rainxch.githubstore` | Version: 1.8.2 (code 17) | Target SDK: 36
 
 ## Build & Run Commands
 
@@ -45,9 +45,11 @@ feature/
   dev-profile/                       # Developer/user profile display
   favourites/                        # Saved favorite repositories (presentation-only)
   home/                              # Main discovery screen (trending, hot, popular)
-  profile/                           # User profile, settings, appearance, proxy, Shizuku installer
+  profile/                           # User profile (account, sponsor) — settings live in tweaks/
+  recently-viewed/                   # Recently-viewed repositories
   search/                            # Repository search with filters
   starred/                           # Starred repositories (presentation-only)
+  tweaks/                            # All app settings (updates, installation, telemetry, hidden/skipped lists, feedback, mirror picker)
 build-logic/convention/              # Custom Gradle convention plugins
 ```
 
@@ -87,7 +89,11 @@ Type-safe navigation using `@Serializable` sealed interface `GithubStoreGraph`:
 
 ```
 HomeScreen, SearchScreen, AuthenticationScreen, ProfileScreen,
-FavouritesScreen, StarredReposScreen, AppsScreen, SponsorScreen
+TweaksScreen, FavouritesScreen, StarredReposScreen,
+RecentlyViewedScreen, AppsScreen, SponsorScreen,
+ExternalImportScreen, MirrorPickerScreen, StarredPickerScreen,
+SkippedUpdatesScreen, HiddenRepositoriesScreen,
+WhatsNewHistoryScreen, AnnouncementsScreen
 DetailsScreen(repositoryId, owner, repo, isComingFromUpdate)
 DeveloperProfileScreen(username)
 ```
@@ -102,7 +108,7 @@ Routes defined in `composeApp/.../app/navigation/GithubStoreGraph.kt`, wired in 
 
 | Module | Purpose | Key Contents |
 |--------|---------|--------------|
-| `core/domain` | Shared contracts | Repository interfaces (`FavouritesRepository`, `StarredRepository`, `InstalledAppsRepository`, `ThemesRepository`, `ProxyRepository`, `RateLimitRepository`), models (`GithubRepoSummary`, `GithubRelease`, `InstalledApp`, `ProxyConfig`, `InstallerType`, `ShizukuAvailability`), system interfaces (`Installer`, `InstallerInfoExtractor`, `InstallerStatusProvider`, `PackageMonitor`) |
+| `core/domain` | Shared contracts | Repository interfaces (`FavouritesRepository`, `StarredRepository`, `InstalledAppsRepository`, `SeenReposRepository`, `HiddenReposRepository`, `SearchHistoryRepository`, `TweaksRepository`, `AuthenticationState`, `ThemesRepository`, `ProxyRepository`, `RateLimitRepository`, `ExternalImportRepository`, `TelemetryRepository`), models (`GithubRepoSummary`, `GithubRelease`, `GithubAsset`, `InstalledApp`, `SeenRepo`, `HiddenRepo`, `FavoriteRepo`, `ProxyConfig`, `InstallerType`, `ShizukuAvailability`, `DiscoveryPlatform`), util (`AssetVariant` token/glob/stem fingerprinting, `assetPlatformOf`), system interfaces (`Installer`, `InstallerInfoExtractor`, `InstallerStatusProvider`, `PackageMonitor`, `SystemInstallSerializer`) |
 | `core/data` | Shared implementations | `HttpClientFactory` (Ktor + interceptors), `AppDatabase` (Room), `ProxyManager`, `TokenStore`, `LocalizationManager`, platform-specific clients (OkHttp for Android, CIO for Desktop), Shizuku integration (Android: `ShizukuServiceManager`, `ShizukuInstallerWrapper`, `ShizukuInstallerServiceImpl`, `AndroidInstallerStatusProvider`; Desktop: `DesktopInstallerStatusProvider`) |
 | `core/presentation` | Shared UI | `GithubStoreTheme` (Material 3), reusable components (`RepositoryCard`, `GithubStoreButton`), formatting utils, localized strings (13 languages) |
 
@@ -111,7 +117,7 @@ Routes defined in `composeApp/.../app/navigation/GithubStoreGraph.kt`, wired in 
 | Area | Library | Version |
 |------|---------|---------|
 | Language | Kotlin | 2.3.10 |
-| UI | Compose Multiplatform | 1.10.1 |
+| UI | Compose Multiplatform | 1.10.3 |
 | HTTP | Ktor | 3.4.0 |
 | Database | Room | 2.8.4 |
 | DI | Koin | 4.1.1 |
@@ -156,6 +162,7 @@ Custom Gradle plugins in `build-logic/convention/` standardize module setup:
 
 - **GitHub OAuth:** Set `GITHUB_CLIENT_ID` in `local.properties`. Callback URL: `githubstore://callback`. Deep link: `githubstore://repo`
 - **Shizuku (Android):** Optional silent install via `ShizukuProvider` (registered in AndroidManifest). Requires Shizuku app running with ADB or root. AIDL service passes APK via `ParcelFileDescriptor` to `pm install -S`. Falls back to standard installer on failure.
+- **Windows installer signing (SignPath Foundation):** CI workflow `.github/workflows/build-desktop-platforms.yml` job `sign-windows` ships `.exe` + `.msi` through the SignPath GitHub Action (pinned to commit SHA, not `@v2`) after every push to the `generate-installers` branch. Requires three repo secrets/vars: `SIGNPATH_API_TOKEN` (secret), `SIGNPATH_ORGANIZATION_ID` (secret, currently `1ecf111e-323c-4703-bc9d-f0fb683bb4dc`), `SIGNPATH_SIGNING_POLICY_SLUG` (variable — set to `test-signing` until SignPath issues the production cert; flip to `release-signing` to ship trusted-signed installers). Project slug `GitHub-Store`, artifact-configuration slug `initial`. Windows installers are flattened into a single `windows-installers` artifact (no nested `exe/`/`msi/` subdirs) so SignPath's zip-globs work; the unsigned artifact is deleted post-sign so only `windows-installers-signed` reaches the draft release.
 - **Gradle properties:** Config cache enabled, build cache enabled, 4GB Gradle heap, 3GB Kotlin daemon heap
 - **Code style:** Official Kotlin style (`kotlin.code.style=official`)
 - **Desktop logs:** `CrashReporter` (installed as the first line of `DesktopApp.main`) tees `System.out`/`System.err` to a rotating `session.log` and writes `crash-<timestamp>.log` on uncaught exceptions. Paths: `~/Library/Logs/GitHub-Store/` (macOS), `%LOCALAPPDATA%/GitHub-Store/logs/` (Windows), `$XDG_STATE_HOME/GitHub-Store/logs/` (Linux). Android uses Logcat — no CrashReporter.

@@ -40,7 +40,7 @@ interface HomeRepository {
 
 ## ViewModel Dependencies
 
-`HomeViewModel` depends on: `HomeRepository`, `InstalledAppsRepository`, `Platform`, `SyncInstalledAppsUseCase`, `FavouritesRepository`, `StarredRepository`, `GitHubStoreLogger`
+`HomeViewModel` depends on: `HomeRepository`, `InstalledAppsRepository`, `Platform`, `SyncInstalledAppsUseCase`, `FavouritesRepository`, `StarredRepository`, `GitHubStoreLogger`, `ShareManager`, `TweaksRepository`, `SeenReposRepository`, `HiddenReposRepository`, `ProfileRepository`
 
 ## Navigation
 
@@ -52,5 +52,8 @@ Route: `GithubStoreGraph.HomeScreen` (data object, no params)
 - Cache is per-category with 7-day TTL in `CachedRepositoriesDataSource`
 - Pagination uses `nextPageIndex` tracking; deduplicates by `fullName`
 - Apps section visibility is platform-dependent (`Platform.ANDROID` only)
-- Observes installed apps, favourites, and starred repos reactively to update status badges
+- Observes installed apps, favourites, starred repos, and hidden-repo IDs reactively to update status badges and render-time filtering
+- `HomeRoot.visibleRepos` derives the displayed list — filters by `hiddenRepoIds` (E11) and `seenRepoIds` when `isHideSeenEnabled` (per-tweak)
+- Long-press on a `RepositoryCard` opens a `RepositoryActionsBottomSheet` (Share / Open on GitHub / Mark seen / Hide)
+- `DiscoveryRepositoryUi.isCurrentUserOwner` flipped by `observeCurrentUser` (E20 self-owned badge)
 - State uses `onStart` + `stateIn(WhileSubscribed)` for lazy initialization

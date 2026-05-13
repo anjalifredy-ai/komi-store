@@ -2,7 +2,7 @@
 
 ## Purpose
 
-User profile screen combining account management, appearance settings, network proxy configuration, installer method selection (including Shizuku silent install on Android), and sponsor/about info. Replaces the former `feature/settings/` module. Accessible from the bottom navigation bar.
+Account-level screen — GitHub user profile, login/logout, sponsor entry, version info. **Settings have moved to `feature/tweaks/`** (appearance, installer type, proxy, telemetry, translation, mirror, hidden/skipped lists). This module is now narrow on purpose: it owns the account identity, exposes `ProfileRepository.getUser()` to the rest of the app (read by `feature/home`, `feature/search`, `feature/details`, `feature/starred`, `feature/favourites`, `feature/tweaks`, `feature/dev-profile` for the E20 self-owned badge and account-aware flows), and renders the SponsorScreen.
 
 ## Module Structure
 
@@ -82,12 +82,8 @@ Routes:
 
 ## Implementation Notes
 
-- **Installation section** (Android only): Radio-button group to choose between Default (standard system dialog) and Shizuku (silent install). Uses `selectableGroup` + `selectable` with `Role.RadioButton` for accessibility.
-- **Shizuku status**: Observes `InstallerStatusProvider.shizukuAvailability` flow to show real-time status (not installed, not running, permission needed, ready). Grant permission button calls `InstallerStatusProvider.requestShizukuPermission()`.
-- **Installer preference** stored via `ThemesRepository.setInstallerType()` / `getInstallerType()` (persisted in DataStore).
-- **Proxy settings**: Supports HTTP and SOCKS proxies with optional authentication. Saved via `ProxyRepository` from core/domain.
-- **Appearance**: Theme color (`AppTheme` enum), font (`FontTheme`), dark mode toggle, AMOLED black toggle.
-- **Account**: Shows GitHub user profile when logged in; login/logout with confirmation dialog.
-- **Cache management**: Displays cache size and allows clearing.
+- **Account**: Shows GitHub user profile when logged in; login/logout with confirmation dialog. Tapping "Settings" routes to the Tweaks screen.
+- **ProfileRepository.getUser():** suspend-cached via `CacheManager` (`profile:me` key). Other features call this to resolve the current user login for self-owned badges, gated features, etc. Cache invalidates on logout.
 - **BuildKonfig**: Uses `convention.buildkonfig` plugin for build-time configuration.
-- ViewModel depends on: `ProfileRepository`, `ThemesRepository`, `ProxyRepository`, `InstallerStatusProvider`, `Platform`
+- ViewModel depends on: `ProfileRepository`, `Platform`
+- **Settings moved out:** appearance, installer type / Shizuku / Dhizuku / Root, proxy, telemetry, cache management, hidden / skipped lists, mirror picker, feedback are all owned by `feature/tweaks/` now. Don't add new settings here.

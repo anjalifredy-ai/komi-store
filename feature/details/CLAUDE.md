@@ -100,6 +100,10 @@ Can be reached via repo ID or owner+name (for deep links). Falls back to owner+n
 - `ReleaseAssetsPicker` allows selecting specific assets; `VersionTypePicker` filters stable vs pre-release
 - Version picker allows selecting specific releases for download
 - Downgrade warning shown when installing an older version than currently installed
-- Integrates with `FavouritesRepository`, `StarredRepository`, `InstalledAppsRepository` from core
+- Integrates with `FavouritesRepository`, `StarredRepository`, `InstalledAppsRepository`, `SeenReposRepository`, `TweaksRepository`, `TelemetryRepository`, `ExternalImportRepository`, `AuthenticationState`, `ProfileRepository` from core
 - Uses `Downloader` and `Installer` interfaces from core/domain for platform-specific download/install
-- On Android, install may use Shizuku (silent) or standard system installer depending on user preference in profile settings
+- On Android, install may use Default / Shizuku / Dhizuku / Root depending on user preference in Tweaks → Installation. Root path uses raw `su` shell-out via `RootServiceManager`; Dhizuku on Android 14+ retries without installer attribution
+- **Multi-OS release picker (E15):** `ReleaseAssetsItemsPicker` has a "Show all platforms" toggle that flips the global `TweaksRepository.showAllPlatforms` flag. When ON, assets group by detected `DiscoveryPlatform` (via `assetPlatformOf`) into `PlatformSectionCard`s with "Your device" / "For transfer" chips. Non-current-platform asset selection routes to `OnDownloadForTransfer` → `BrowserHelper.openUrl` so the file lands in the user's browser Downloads
+- **Coachmarks:** one-shot APK Inspect button pulse + one-shot release-channel chip Popup. Both persisted via `TweaksRepository.get*CoachmarkShown` flags; flipped on dismiss OR explicit acknowledgement
+- **Self-owned badge (E20):** `AppHeader` shows ✓ next to the owner login when `state.isCurrentUserOwner` is true. Reactively flipped via `combine(profileRepository.getUser(), state.repository.owner.login)`
+- **Skipped release tracking (E542):** per-app `skippedReleaseTag` on the `InstalledApp` row; persisted in Room. `SmartInstallButton` reads this to suppress the update CTA. Skipped tag auto-clears when a strictly-newer release lands

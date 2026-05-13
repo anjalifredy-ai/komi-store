@@ -53,3 +53,8 @@ Route: `GithubStoreGraph.SearchScreen` (data object, no params)
 - Search results use the same `PaginatedDiscoveryRepositories` model as home feature
 - Debounce/throttle applied to search queries to avoid excessive API calls
 - Integrates with favourites and starred status from core repositories
+- `SearchViewModel` also injects `SeenReposRepository`, `HiddenReposRepository`, `TweaksRepository`, `ProfileRepository`, `TelemetryRepository`, `SearchHistoryRepository`, `ClipboardHelper`, `ShareManager` — covers seen-filter, hide-from-discovery, history, clipboard URL detection, share
+- `computeVisibleRepos` filters `state.repositories` at render time by `hiddenRepoIds` AND (when `isHideSeenEnabled`) `seenRepoIds`; unhide restores the row without re-fetching
+- Empty-grid-after-Hide-seen banner offers a one-tap reset (issue #574) — `OnDisableHideSeenForResults` flips the global tweak
+- Long-press on a card opens the shared `RepositoryActionsBottomSheet` (Share / Open on GitHub / Mark seen / Hide)
+- `DiscoveryRepositoryUi.isCurrentUserOwner` flipped by `observeCurrentUser` (E20 self-owned badge)

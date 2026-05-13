@@ -21,6 +21,7 @@ feature/favourites/
 ## Key Dependencies
 
 - `FavouritesRepository` (from `core/domain`) - CRUD operations for favourites
+- `ProfileRepository` (from `feature/profile/domain`) - current user login for E20 self-owned ✓ badge
 - Favourites are stored locally in Room database (`FavoriteRepoDao` in `core/data`)
 
 ## Navigation
@@ -32,4 +33,6 @@ Route: `GithubStoreGraph.FavouritesScreen` (data object, no params)
 - No network calls -- all data is local (Room database)
 - Uses a presentation-layer `FavouriteRepository` UI model mapped from the domain `FavoriteRepo`
 - Adding to favourites happens in other features (home, details, search); this feature only displays and removes
+- Inline search bar (E562) when the list is non-empty — filters by name / owner / description / language client-side
+- `FavouriteRepository.isCurrentUserOwner` field flips when the signed-in user owns the repo (E20)
 - The Koin module for this feature is registered in `composeApp/.../app/di/ViewModelsModule.kt` since there's no `data/di/` layer
