@@ -74,8 +74,8 @@
 
     <!-- Results -->
     <string name="results_found">%1$d risultati trovati</string>
-    <string name="search_results_hidden_by_seen_filter">Tutti i risultati sono nascosti dal filtro \'Nascondi visti\'</string>
-    <string name="show_all_results">Disattiva filtro \'Nascondi visti\'</string>
+    <string name="search_results_hidden_by_seen_filter">Tutti i risultati sono nascosti dal filtro 'Nascondi visti'</string>
+    <string name="show_all_results">Disattiva filtro 'Nascondi visti'</string>
     <string name="searching_for_unseen_repos">Ricerca repository non visti…</string>
 
 
@@ -425,7 +425,7 @@
     <string name="proxy_port_error">La porta deve essere 1–65535</string>
     <string name="proxy_none_description">Connessione diretta, nessun proxy</string>
     <string name="failed_to_save_proxy_settings">Impossibile salvare le impostazioni del proxy</string>
-    <string name="proxy_host_required">L\'host del proxy è obbligatorio</string>
+    <string name="proxy_host_required">L'host del proxy è obbligatorio</string>
     <string name="proxy_host_invalid">Inserisci un nome host o indirizzo IP valido</string>
     <string name="invalid_proxy_port">Porta proxy non valida</string>
     <string name="proxy_show_password">Mostra password</string>
@@ -576,11 +576,11 @@
     <string name="interval_24h">24h</string>
 
     <string name="battery_optimization_card_title">Consenti aggiornamenti in background</string>
-    <string name="battery_optimization_card_description">Il tuo dispositivo chiude in modo aggressivo le attività in background. Esenta GitHub Store dall\'ottimizzazione della batteria affinché i controlli pianificati e le installazioni silenziose funzionino in modo affidabile.</string>
+    <string name="battery_optimization_card_description">Il tuo dispositivo chiude in modo aggressivo le attività in background. Esenta GitHub Store dall'ottimizzazione della batteria affinché i controlli pianificati e le installazioni silenziose funzionino in modo affidabile.</string>
     <string name="battery_optimization_card_open">Apri impostazioni</string>
     <string name="battery_optimization_card_dismiss">Più tardi</string>
 
-    <string name="add_by_link">Traccia un\'app</string>
+    <string name="add_by_link">Traccia un'app</string>
     <string name="link_app_title">Collega app al repository</string>
     <string name="pick_installed_app">Scegli un'app installata da collegare a un repository GitHub</string>
     <string name="search_apps_hint">Cerca app…</string>
@@ -964,7 +964,7 @@
 
     <!-- ───── 1.8.1 backlog ───── -->
     <string name="add_from_starred_title">Aggiungi dai preferiti</string>
-    <string name="announcements_acknowledge">L\'ho letto</string>
+    <string name="announcements_acknowledge">L'ho letto</string>
     <string name="announcements_acknowledged">Preso atto</string>
     <string name="announcements_category_news">Novità</string>
     <string name="announcements_category_privacy">Privacy</string>
@@ -992,7 +992,7 @@
     <string name="apk_inspect_button_label">Ispeziona APK</string>
     <string name="apk_inspect_coachmark_body">Permessi, firma, componenti — vedi esattamente cosa dichiara un APK.</string>
     <string name="apk_inspect_coachmark_dismiss">Capito</string>
-    <string name="apk_inspect_coachmark_title">Dai un\'occhiata prima di installare</string>
+    <string name="apk_inspect_coachmark_title">Dai un'occhiata prima di installare</string>
     <string name="apk_inspect_compatibility">Compatibilità</string>
     <string name="apk_inspect_components">Componenti</string>
     <string name="apk_inspect_debuggable">Build debuggable — sospetto se si tratta di una release.</string>
@@ -1035,8 +1035,8 @@
     <string name="apps_section_state_expanded">Espanso</string>
     <string name="apps_section_up_to_date">Aggiornato</string>
     <string name="apps_section_updates_available">Aggiornamenti disponibili</string>
-    <string name="confirm_discard_pending_message">Scartare l\'installer parcheggiato per %1$s e rimuovere la riga dalla tua lista app? L\'APK scaricato verrà eliminato.</string>
-    <string name="confirm_discard_pending_title">Scartare l\'installazione in attesa?</string>
+    <string name="confirm_discard_pending_message">Scartare l'installer parcheggiato per %1$s e rimuovere la riga dalla tua lista app? L'APK scaricato verrà eliminato.</string>
+    <string name="confirm_discard_pending_title">Scartare l'installazione in attesa?</string>
     <string name="dhizuku_grant_permission">Concedi permesso</string>
     <string name="dhizuku_install_hint">Installa Dhizuku e attivalo come Device Owner per abilitare le installazioni silenziose</string>
     <string name="dhizuku_start_hint">Attiva Dhizuku come Device Owner per abilitare le installazioni silenziose</string>
@@ -1064,7 +1064,7 @@
     <string name="export_apps_obtainium">Esporta per Obtainium</string>
     <string name="external_import_card_owner_byline">di %1$s</string>
     <string name="external_import_card_preselect_known_prefix">Pensiamo che sia</string>
-    <string name="failed_to_discard_pending">Impossibile scartare l\'installazione in attesa per %1$s</string>
+    <string name="failed_to_discard_pending">Impossibile scartare l'installazione in attesa per %1$s</string>
     <string name="import_summary_already_tracked">%1$d già tracciati</string>
     <string name="import_summary_close">Fatto</string>
     <string name="import_summary_collapse">Nascondi dettagli</string>
@@ -1076,13 +1076,13 @@
     <string name="import_summary_non_github">%1$d non GitHub</string>
     <string name="import_summary_non_github_caption">Non tracciamo ancora GitLab, F-Droid o sorgenti HTML.</string>
     <string name="import_summary_title">Risultati import — %1$s</string>
-    <string name="import_summary_unknown_caption">Non sembra un\'esportazione di GitHub Store o Obtainium. Ecco l\'inizio del file:</string>
+    <string name="import_summary_unknown_caption">Non sembra un'esportazione di GitHub Store o Obtainium. Ecco l'inizio del file:</string>
     <string name="import_summary_unknown_format">Impossibile leggere questo file</string>
     <string name="installer_attribution_custom_apply">Applica</string>
     <string name="installer_attribution_custom_error">Usa un nome di pacchetto Android valido (es. com.example.installer)</string>
     <string name="installer_attribution_custom_label">Nome pacchetto installer</string>
     <string name="installer_attribution_description">Le app possono vedere quale installer le ha messe sul tuo dispositivo. Per default è la shell di sistema.</string>
-    <string name="installer_attribution_disclosure">Alcune app rilevano quando cambia l\'installer e possono rifiutarsi di funzionare, o fallire i controlli di sicurezza (es. Play Integrity, app bancarie).</string>
+    <string name="installer_attribution_disclosure">Alcune app rilevano quando cambia l'installer e possono rifiutarsi di funzionare, o fallire i controlli di sicurezza (es. Play Integrity, app bancarie).</string>
     <string name="installer_attribution_preset_custom">Personalizzato…</string>
     <string name="installer_attribution_preset_fdroid">F-Droid</string>
     <string name="installer_attribution_preset_obtainium">Obtainium</string>
@@ -1108,7 +1108,7 @@
     <string name="starred_picker_sort_alphabetical">A → Z</string>
     <string name="starred_picker_sort_recent">Recentemente preferiti</string>
     <string name="starred_picker_sort_stars">Più stelle</string>
-    <string name="starred_picker_star_dedup_tooltip">Rimuovere la stella su GitHub non smetterà di tracciare l\'app.</string>
+    <string name="starred_picker_star_dedup_tooltip">Rimuovere la stella su GitHub non smetterà di tracciare l'app.</string>
     <string name="starred_picker_title">Aggiungi dai preferiti</string>
     <string name="whats_new_cta_dismiss">Capito</string>
     <string name="whats_new_cta_history">Vedi versioni precedenti</string>
@@ -1119,7 +1119,7 @@
     <string name="whats_new_section_improved">Migliorato</string>
     <string name="whats_new_section_new">Novità</string>
     <string name="whats_new_sheet_heading">Novità in %1$s</string>
-    <string name="whats_new_title">Cosa c\'è di nuovo</string>
+    <string name="whats_new_title">Cosa c'è di nuovo</string>
     <string name="whats_new_translations_note">Il changelog è in inglese. Le traduzioni sono benvenute tramite Issues.</string>
     <string name="whats_new_version_label">Versione %1$s · %2$s</string>
 

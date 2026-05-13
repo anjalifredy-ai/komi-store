@@ -73,8 +73,8 @@
 
     <!-- Results -->
     <string name="results_found">%1$d sonuç bulundu</string>
-    <string name="search_results_hidden_by_seen_filter">Tüm sonuçlar \'Görüleni gizle\' filtresiyle gizlendi</string>
-    <string name="show_all_results">\'Görüleni gizle\' filtresini devre dışı bırak</string>
+    <string name="search_results_hidden_by_seen_filter">Tüm sonuçlar 'Görüleni gizle' filtresiyle gizlendi</string>
+    <string name="show_all_results">'Görüleni gizle' filtresini devre dışı bırak</string>
     <string name="searching_for_unseen_repos">Görülmemiş depolar aranıyor…</string>
 
 
@@ -574,7 +574,7 @@
     <string name="interval_24h">24s</string>
 
     <string name="battery_optimization_card_title">Arka planda güncellemelere izin ver</string>
-    <string name="battery_optimization_card_description">Cihazın arka plan görevlerini agresif şekilde kapatıyor. GitHub Store\'u pil optimizasyonundan hariç tut ki zamanlanmış güncelleme kontrolleri ve sessiz kurulumlar güvenilir biçimde çalışsın.</string>
+    <string name="battery_optimization_card_description">Cihazın arka plan görevlerini agresif şekilde kapatıyor. GitHub Store'u pil optimizasyonundan hariç tut ki zamanlanmış güncelleme kontrolleri ve sessiz kurulumlar güvenilir biçimde çalışsın.</string>
     <string name="battery_optimization_card_open">Ayarları aç</string>
     <string name="battery_optimization_card_dismiss">Sonra</string>
 
@@ -986,8 +986,8 @@
     <string name="announcements_severity_info">Bilgi</string>
     <string name="announcements_title">Duyurular</string>
     <string name="announcements_view_details">Ayrıntıları gör</string>
-    <string name="apk_inspect_button_label">APK\'yı incele</string>
-    <string name="apk_inspect_coachmark_body">İzinler, imza, bileşenler — bir APK\'nın tam olarak ne bildirdiğini görün.</string>
+    <string name="apk_inspect_button_label">APK'yı incele</string>
+    <string name="apk_inspect_coachmark_body">İzinler, imza, bileşenler — bir APK'nın tam olarak ne bildirdiğini görün.</string>
     <string name="apk_inspect_coachmark_dismiss">Anladım</string>
     <string name="apk_inspect_coachmark_title">Yüklemeden önce içine bakın</string>
     <string name="apk_inspect_compatibility">Uyumluluk</string>
@@ -1035,12 +1035,12 @@
     <string name="confirm_discard_pending_message">%1$s için park edilmiş yükleyiciyi silip uygulama listenizden satırı kaldırmak istiyor musunuz? İndirilen APK silinecek.</string>
     <string name="confirm_discard_pending_title">Bekleyen kurulumu sil?</string>
     <string name="dhizuku_grant_permission">İzin ver</string>
-    <string name="dhizuku_install_hint">Sessiz kurulumları etkinleştirmek için Dhizuku\'yu yükleyin ve Device Owner olarak etkinleştirin</string>
-    <string name="dhizuku_start_hint">Sessiz kurulumları etkinleştirmek için Dhizuku\'yu Device Owner olarak etkinleştirin</string>
+    <string name="dhizuku_install_hint">Sessiz kurulumları etkinleştirmek için Dhizuku'yu yükleyin ve Device Owner olarak etkinleştirin</string>
+    <string name="dhizuku_start_hint">Sessiz kurulumları etkinleştirmek için Dhizuku'yu Device Owner olarak etkinleştirin</string>
     <string name="installer_type_root">Root</string>
     <string name="installer_type_root_description">Magisk, KernelSU veya APatch root ile sessiz yükleme</string>
     <string name="root_status_ready">Verildi</string>
-    <string name="root_status_permission_needed">Root\'a izin ver</string>
+    <string name="root_status_permission_needed">Root'a izin ver</string>
     <string name="root_status_unavailable">Root yok</string>
     <string name="root_grant_permission">Root erişimine izin ver</string>
     <string name="root_unavailable_hint">Bu cihazda root yok. Önce Magisk, KernelSU veya APatch yükleyin.</string>
@@ -1089,11 +1089,11 @@
     <string name="installer_type_dhizuku">Dhizuku</string>
     <string name="installer_type_dhizuku_description">Device Owner ile sessiz kurulum — OEM kurulum istemlerini atlar</string>
     <string name="rate_limit_exceeded_retry_in">Hız sınırına ulaşıldı — %1$d sn sonra tekrar deneyin.</string>
-    <string name="rate_limit_exceeded_signin_hint">Daha yüksek kota için GitHub\'a giriş yapın.</string>
+    <string name="rate_limit_exceeded_signin_hint">Daha yüksek kota için GitHub'a giriş yapın.</string>
     <string name="releases_unavailable_temporarily">Sürümler geçici olarak kullanılamıyor. Lütfen birazdan tekrar deneyin.</string>
     <string name="starred_picker_already_tracked">Takip ediliyor</string>
     <string name="starred_picker_apk_badge">APK</string>
-    <string name="starred_picker_empty">Yıldızlı repo yok. Burada görmek için GitHub\'da repolara yıldız verin.</string>
+    <string name="starred_picker_empty">Yıldızlı repo yok. Burada görmek için GitHub'da repolara yıldız verin.</string>
     <string name="starred_picker_filter_show_all">APK sürümü olmayan repoları göster</string>
     <string name="starred_picker_header_counts">%1$d yıldızlı · %2$d APK yayınlıyor · %3$d zaten takipte</string>
     <string name="starred_picker_no_match">Eşleşen yok.</string>
@@ -1101,11 +1101,11 @@
     <string name="starred_picker_rate_limited">GitHub hız sınırına ulaşıldı. Kontrol etmeye devam etmek için sürdür.</string>
     <string name="starred_picker_resume">Sürdür</string>
     <string name="starred_picker_search_hint">Sahip / repo / açıklama ara</string>
-    <string name="starred_picker_sign_in_required">Yıldızlı repolarınızı görmek için GitHub\'a giriş yapın.</string>
+    <string name="starred_picker_sign_in_required">Yıldızlı repolarınızı görmek için GitHub'a giriş yapın.</string>
     <string name="starred_picker_sort_alphabetical">A → Z</string>
     <string name="starred_picker_sort_recent">Son yıldızlananlar</string>
     <string name="starred_picker_sort_stars">En çok yıldız</string>
-    <string name="starred_picker_star_dedup_tooltip">GitHub\'da yıldızı kaldırmak uygulamanın takibini bırakmaz.</string>
+    <string name="starred_picker_star_dedup_tooltip">GitHub'da yıldızı kaldırmak uygulamanın takibini bırakmaz.</string>
     <string name="starred_picker_title">Yıldızlılardan ekle</string>
     <string name="whats_new_cta_dismiss">Anladım</string>
     <string name="whats_new_cta_history">Önceki sürümleri göster</string>
@@ -1138,16 +1138,16 @@
     <string name="skipped_updates_unskipped_snackbar">%1$s için güncelleme bildirimi yeniden açıldı</string>
     <string name="skipped_updates_unskip_failure">Tercih güncellenemedi</string>
     <string name="hidden_repositories_title">Gizli depolar</string>
-    <string name="hidden_repositories_entry_description">Ana ekran ve Arama\'da gizlediğin depoları yönet.</string>
+    <string name="hidden_repositories_entry_description">Ana ekran ve Arama'da gizlediğin depoları yönet.</string>
     <string name="hidden_repositories_count">%1$d gizli</string>
     <string name="hidden_repositories_empty_title">Gizli depo yok</string>
-    <string name="hidden_repositories_empty_description">Ana ekran veya Arama\'da bir depo kartına basılı tutarak keşiften gizleyin.</string>
+    <string name="hidden_repositories_empty_description">Ana ekran veya Arama'da bir depo kartına basılı tutarak keşiften gizleyin.</string>
     <string name="hidden_repositories_unhide_action">Göster</string>
     <string name="hidden_repositories_unhide_all">Tümünü göster</string>
     <string name="hidden_repositories_unhidden_snackbar">%1$s yeniden görünür</string>
     <string name="hidden_repositories_unhidden_all_snackbar">Tüm depolar yeniden görünür</string>
     <string name="hidden_repositories_unhide_failure">Gösterilemedi. Tekrar dene.</string>
-    <string name="open_on_github">GitHub\'da aç</string>
+    <string name="open_on_github">GitHub'da aç</string>
     <string name="mark_as_viewed">Görüldü olarak işaretle</string>
     <string name="mark_as_unviewed">Görülmedi olarak işaretle</string>
     <string name="show_all_platforms_label">Tüm platformları göster</string>

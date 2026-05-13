@@ -538,7 +538,7 @@
     <string name="interval_24h">24h</string>
 
     <string name="battery_optimization_card_title">Autoriser les mises à jour en arrière-plan</string>
-    <string name="battery_optimization_card_description">Votre appareil interrompt agressivement les tâches d\'arrière-plan. Excluez GitHub Store de l\'optimisation de la batterie pour que les vérifications planifiées et les installations silencieuses fonctionnent de manière fiable.</string>
+    <string name="battery_optimization_card_description">Votre appareil interrompt agressivement les tâches d'arrière-plan. Excluez GitHub Store de l'optimisation de la batterie pour que les vérifications planifiées et les installations silencieuses fonctionnent de manière fiable.</string>
     <string name="battery_optimization_card_open">Ouvrir les paramètres</string>
     <string name="battery_optimization_card_dismiss">Plus tard</string>
 
@@ -564,7 +564,7 @@
     <string name="import_apps_description">Collez le JSON exporté pour restaurer vos apps suivies</string>
     <string name="import_apps_hint">Collez le JSON exporté ici…</string>
     <string name="include_pre_releases_title">Canal bêta par défaut</string>
-    <string name="include_pre_releases_description">Les apps nouvellement suivies incluent les versions bêta par défaut. Les apps déjà suivies conservent leur propre paramètre (modifiable dans Détails de l\'app).</string>
+    <string name="include_pre_releases_description">Les apps nouvellement suivies incluent les versions bêta par défaut. Les apps déjà suivies conservent leur propre paramètre (modifiable dans Détails de l'app).</string>
     <string name="confirm_uninstall_title">Désinstaller l'app ?</string>
     <string name="confirm_uninstall_message">Êtes-vous sûr de vouloir désinstaller %1$s ? Cette action est irréversible et les données de l'app pourraient être perdues.</string>
     <string name="invalid_github_url">URL GitHub invalide. Utilisez le format : github.com/owner/repo</string>
@@ -925,7 +925,7 @@
 
     <!-- ───── 1.8.1 backlog ───── -->
     <string name="add_from_starred_title">Ajouter depuis les favoris</string>
-    <string name="announcements_acknowledge">J\'ai lu</string>
+    <string name="announcements_acknowledge">J'ai lu</string>
     <string name="announcements_acknowledged">Pris en compte</string>
     <string name="announcements_category_news">Actualités</string>
     <string name="announcements_category_privacy">Confidentialité</string>
@@ -936,7 +936,7 @@
     <string name="announcements_days_ago">%1$d j</string>
     <string name="announcements_empty">Rien à partager pour le moment.</string>
     <string name="announcements_hours_ago">%1$d h</string>
-    <string name="announcements_just_now">à l\'instant</string>
+    <string name="announcements_just_now">à l'instant</string>
     <string name="announcements_last_refreshed">Actualisé il y a %1$s</string>
     <string name="announcements_minutes_ago">%1$d min</string>
     <string name="announcements_mute_locked">Impossible à désactiver</string>
@@ -944,20 +944,20 @@
     <string name="announcements_open_mute_settings">Ouvrir les paramètres de silence</string>
     <string name="announcements_profile_description">Actualités, sondages et avis importants.</string>
     <string name="announcements_read_more">Lire la suite</string>
-    <string name="announcements_refresh_failed">Impossible d\'actualiser — affichage des éléments en cache.</string>
+    <string name="announcements_refresh_failed">Impossible d'actualiser — affichage des éléments en cache.</string>
     <string name="announcements_severity_critical">Critique</string>
     <string name="announcements_severity_important">Important</string>
     <string name="announcements_severity_info">Info</string>
     <string name="announcements_title">Annonces</string>
     <string name="announcements_view_details">Voir les détails</string>
-    <string name="apk_inspect_button_label">Inspecter l\'APK</string>
+    <string name="apk_inspect_button_label">Inspecter l'APK</string>
     <string name="apk_inspect_coachmark_body">Permissions, signature, composants — voyez exactement ce que déclare un APK.</string>
     <string name="apk_inspect_coachmark_dismiss">Compris</string>
-    <string name="apk_inspect_coachmark_title">Jetez un œil avant d\'installer</string>
+    <string name="apk_inspect_coachmark_title">Jetez un œil avant d'installer</string>
     <string name="apk_inspect_compatibility">Compatibilité</string>
     <string name="apk_inspect_components">Composants</string>
-    <string name="apk_inspect_debuggable">Build debuggable — louche s\'il s\'agit d\'une release.</string>
-    <string name="apk_inspect_empty">Rien à inspecter pour cette app pour l\'instant.</string>
+    <string name="apk_inspect_debuggable">Build debuggable — louche s'il s'agit d'une release.</string>
+    <string name="apk_inspect_empty">Rien à inspecter pour cette app pour l'instant.</string>
     <string name="apk_inspect_file_info">Fichier</string>
     <string name="apk_inspect_identity">Identité</string>
     <string name="apk_inspect_min_sdk">SDK minimum</string>
@@ -980,7 +980,7 @@
     <string name="apk_inspect_target_sdk">SDK cible</string>
     <string name="apk_inspect_title">Inspection APK</string>
     <string name="apk_inspect_version_code">Version</string>
-    <string name="apps_compact_more_actions">Plus d\'actions pour %1$s</string>
+    <string name="apps_compact_more_actions">Plus d'actions pour %1$s</string>
     <string name="apps_compact_status_filter_active">filtre monorepo actif</string>
     <string name="apps_compact_status_pending_install">installation en attente</string>
     <string name="apps_compact_status_pre_release_on">pré-version activée</string>
@@ -996,9 +996,9 @@
     <string name="apps_section_state_expanded">Développée</string>
     <string name="apps_section_up_to_date">À jour</string>
     <string name="apps_section_updates_available">Mises à jour disponibles</string>
-    <string name="confirm_discard_pending_message">Abandonner l\'installeur en attente pour %1$s et retirer la ligne de votre liste d\'apps ? L\'APK téléchargé sera supprimé.</string>
-    <string name="confirm_discard_pending_title">Abandonner l\'installation en attente ?</string>
-    <string name="dhizuku_grant_permission">Accorder l\'autorisation</string>
+    <string name="confirm_discard_pending_message">Abandonner l'installeur en attente pour %1$s et retirer la ligne de votre liste d'apps ? L'APK téléchargé sera supprimé.</string>
+    <string name="confirm_discard_pending_title">Abandonner l'installation en attente ?</string>
+    <string name="dhizuku_grant_permission">Accorder l'autorisation</string>
     <string name="dhizuku_install_hint">Installez Dhizuku et activez-le comme Device Owner pour activer les installations silencieuses</string>
     <string name="dhizuku_start_hint">Activez Dhizuku comme Device Owner pour activer les installations silencieuses</string>
     <string name="installer_type_root">Root</string>
@@ -1006,10 +1006,10 @@
     <string name="root_status_ready">Accordé</string>
     <string name="root_status_permission_needed">Autoriser root</string>
     <string name="root_status_unavailable">Pas de root</string>
-    <string name="root_grant_permission">Autoriser l\'accès root</string>
-    <string name="root_unavailable_hint">Le root n\'est pas disponible sur cet appareil. Installez d\'abord Magisk, KernelSU ou APatch.</string>
-    <string name="dhizuku_status_not_installed">Dhizuku n\'est pas installé</string>
-    <string name="dhizuku_status_not_running">Dhizuku n\'est pas actif</string>
+    <string name="root_grant_permission">Autoriser l'accès root</string>
+    <string name="root_unavailable_hint">Le root n'est pas disponible sur cet appareil. Installez d'abord Magisk, KernelSU ou APatch.</string>
+    <string name="dhizuku_status_not_installed">Dhizuku n'est pas installé</string>
+    <string name="dhizuku_status_not_running">Dhizuku n'est pas actif</string>
     <string name="dhizuku_status_permission_needed">Autorisation requise</string>
     <string name="dhizuku_status_ready">Prêt</string>
     <string name="discard_pending_install">Abandonner</string>
@@ -1024,8 +1024,8 @@
     <string name="error_state_title_rate_limit">Limite atteinte</string>
     <string name="export_apps_obtainium">Exporter pour Obtainium</string>
     <string name="external_import_card_owner_byline">par %1$s</string>
-    <string name="external_import_card_preselect_known_prefix">Nous pensons qu\'il s\'agit de</string>
-    <string name="failed_to_discard_pending">Échec de l\'abandon de l\'installation en attente pour %1$s</string>
+    <string name="external_import_card_preselect_known_prefix">Nous pensons qu'il s'agit de</string>
+    <string name="failed_to_discard_pending">Échec de l'abandon de l'installation en attente pour %1$s</string>
     <string name="import_summary_already_tracked">%1$d déjà suivis</string>
     <string name="import_summary_close">Terminé</string>
     <string name="import_summary_collapse">Masquer les détails</string>
@@ -1036,22 +1036,22 @@
     <string name="import_summary_imported">%1$d importés</string>
     <string name="import_summary_non_github">%1$d non GitHub</string>
     <string name="import_summary_non_github_caption">Nous ne suivons pas encore GitLab, F-Droid ni les sources HTML.</string>
-    <string name="import_summary_title">Résultats d\'import — %1$s</string>
+    <string name="import_summary_title">Résultats d'import — %1$s</string>
     <string name="import_summary_unknown_caption">Cela ne ressemble pas à un export GitHub Store ou Obtainium. Voici le début du fichier :</string>
     <string name="import_summary_unknown_format">Impossible de lire ce fichier</string>
     <string name="installer_attribution_custom_apply">Appliquer</string>
     <string name="installer_attribution_custom_error">Utilisez un nom de paquet Android valide (ex. com.example.installer)</string>
-    <string name="installer_attribution_custom_label">Nom du paquet de l\'installeur</string>
-    <string name="installer_attribution_description">Les apps peuvent voir quel installeur les a placées sur votre appareil. Par défaut, c\'est le shell système.</string>
-    <string name="installer_attribution_disclosure">Certaines apps détectent un changement d\'installeur et peuvent refuser de s\'exécuter, ou échouer aux contrôles de sécurité (ex. Play Integrity, apps bancaires).</string>
+    <string name="installer_attribution_custom_label">Nom du paquet de l'installeur</string>
+    <string name="installer_attribution_description">Les apps peuvent voir quel installeur les a placées sur votre appareil. Par défaut, c'est le shell système.</string>
+    <string name="installer_attribution_disclosure">Certaines apps détectent un changement d'installeur et peuvent refuser de s'exécuter, ou échouer aux contrôles de sécurité (ex. Play Integrity, apps bancaires).</string>
     <string name="installer_attribution_preset_custom">Personnalisé…</string>
     <string name="installer_attribution_preset_fdroid">F-Droid</string>
     <string name="installer_attribution_preset_obtainium">Obtainium</string>
     <string name="installer_attribution_preset_playstore">Play Store</string>
     <string name="installer_attribution_preset_system">Par défaut du système</string>
-    <string name="installer_attribution_title">Attribution de l\'installeur</string>
+    <string name="installer_attribution_title">Attribution de l'installeur</string>
     <string name="installer_type_dhizuku">Dhizuku</string>
-    <string name="installer_type_dhizuku_description">Installation silencieuse via Device Owner — contourne les invites d\'installation OEM</string>
+    <string name="installer_type_dhizuku_description">Installation silencieuse via Device Owner — contourne les invites d'installation OEM</string>
     <string name="rate_limit_exceeded_retry_in">Limite atteinte — réessayez dans %1$d s.</string>
     <string name="rate_limit_exceeded_signin_hint">Connectez-vous à GitHub pour un quota plus élevé.</string>
     <string name="releases_unavailable_temporarily">Les releases sont temporairement indisponibles. Réessayez dans un moment.</string>
@@ -1068,12 +1068,12 @@
     <string name="starred_picker_sign_in_required">Connectez-vous à GitHub pour voir vos dépôts favoris.</string>
     <string name="starred_picker_sort_alphabetical">A → Z</string>
     <string name="starred_picker_sort_recent">Mis en favori récemment</string>
-    <string name="starred_picker_sort_stars">Plus d\'étoiles</string>
-    <string name="starred_picker_star_dedup_tooltip">Retirer l\'étoile sur GitHub n\'arrêtera pas le suivi de l\'app.</string>
+    <string name="starred_picker_sort_stars">Plus d'étoiles</string>
+    <string name="starred_picker_star_dedup_tooltip">Retirer l'étoile sur GitHub n'arrêtera pas le suivi de l'app.</string>
     <string name="starred_picker_title">Ajouter depuis les favoris</string>
     <string name="whats_new_cta_dismiss">Compris</string>
     <string name="whats_new_cta_history">Voir les versions précédentes</string>
-    <string name="whats_new_history_empty">Pas encore d\'entrée de changelog.</string>
+    <string name="whats_new_history_empty">Pas encore d'entrée de changelog.</string>
     <string name="whats_new_profile_description">Points forts des versions récentes.</string>
     <string name="whats_new_section_fixed">Corrigé</string>
     <string name="whats_new_section_heads_up">À noter</string>
@@ -1087,15 +1087,15 @@
     <!-- Skip this version (issue #542) -->
     <string name="apps_skip_version">Ignorer cette version</string>
     <string name="apps_skip_version_unskip">Ne plus ignorer</string>
-    <string name="apps_skip_version_snackbar">%1$s ignorée — vous recevrez un avis dès qu\'une nouvelle version paraîtra</string>
+    <string name="apps_skip_version_snackbar">%1$s ignorée — vous recevrez un avis dès qu'une nouvelle version paraîtra</string>
     <string name="apps_unskip_version_snackbar">Avis de mise à jour réactivé</string>
     <string name="apps_skip_version_error">Impossible de mettre à jour la préférence</string>
     <string name="apps_unskip_version_error">Impossible de restaurer la notification de mise à jour</string>
     <string name="skipped_updates_entry_title">Mises à jour ignorées</string>
-    <string name="skipped_updates_entry_description">Versions que vous avez choisi d\'ignorer</string>
+    <string name="skipped_updates_entry_description">Versions que vous avez choisi d'ignorer</string>
     <string name="skipped_updates_title">Mises à jour ignorées</string>
     <string name="skipped_updates_empty_title">Aucune version ignorée</string>
-    <string name="skipped_updates_empty_description">Quand vous ignorez une mise à jour depuis l\'écran des applis, l\'entrée apparaîtra ici pour pouvoir l\'annuler.</string>
+    <string name="skipped_updates_empty_description">Quand vous ignorez une mise à jour depuis l'écran des applis, l'entrée apparaîtra ici pour pouvoir l'annuler.</string>
     <string name="skipped_updates_skipped_label">%1$s ignorée</string>
     <string name="skipped_updates_installed_label">Installée : %1$s</string>
     <string name="skipped_updates_unskip_action">Ne plus ignorer</string>
@@ -1110,7 +1110,7 @@
     <string name="hidden_repositories_unhide_all">Tout afficher</string>
     <string name="hidden_repositories_unhidden_snackbar">%1$s réaffiché</string>
     <string name="hidden_repositories_unhidden_all_snackbar">Tous les dépôts réaffichés</string>
-    <string name="hidden_repositories_unhide_failure">Impossible d\'afficher. Réessayez.</string>
+    <string name="hidden_repositories_unhide_failure">Impossible d'afficher. Réessayez.</string>
     <string name="open_on_github">Ouvrir sur GitHub</string>
     <string name="mark_as_viewed">Marquer comme vu</string>
     <string name="mark_as_unviewed">Marquer comme non vu</string>
@@ -1119,7 +1119,7 @@
     <string name="platform_section_windows">Windows</string>
     <string name="platform_section_macos">macOS</string>
     <string name="platform_section_linux">Linux</string>
-    <string name="saved_for_transfer_hint">Autre plateforme — s\'ouvre dans le navigateur pour enregistrement et transfert</string>
+    <string name="saved_for_transfer_hint">Autre plateforme — s'ouvre dans le navigateur pour enregistrement et transfert</string>
     <string name="section_chip_your_device">Votre appareil</string>
     <string name="section_chip_for_transfer">Pour transfert</string>
 </resources>

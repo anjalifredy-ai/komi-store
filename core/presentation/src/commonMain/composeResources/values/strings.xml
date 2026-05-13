@@ -77,8 +77,8 @@
 
     <!-- Results -->
     <string name="results_found">%1$d results were found</string>
-    <string name="search_results_hidden_by_seen_filter">All results are hidden by the \'Hide seen\' filter</string>
-    <string name="show_all_results">Disable \'Hide seen\' filter</string>
+    <string name="search_results_hidden_by_seen_filter">All results are hidden by the 'Hide seen' filter</string>
+    <string name="show_all_results">Disable 'Hide seen' filter</string>
     <string name="searching_for_unseen_repos">Searching for unseen repositories…</string>
 
 
@@ -205,13 +205,13 @@
     <!-- Errors & states -->
     <string name="error_loading_details">Error loading details</string>
     <string name="error_state_title_generic">Something went wrong</string>
-    <string name="error_state_title_offline">You\'re offline</string>
+    <string name="error_state_title_offline">You're offline</string>
     <string name="error_state_title_rate_limit">Rate limit hit</string>
     <string name="error_state_title_not_found">Repository not found</string>
     <string name="error_state_subtitle_offline">Check your connection and try again.</string>
     <string name="error_state_subtitle_rate_limit">GitHub or our backend hit a quota. Try again in a moment.</string>
     <string name="error_state_subtitle_not_found">The repository may be private, renamed, or deleted.</string>
-    <string name="error_state_subtitle_generic">We couldn\'t load this repo. Use the Retry button below.</string>
+    <string name="error_state_subtitle_generic">We couldn't load this repo. Use the Retry button below.</string>
     <string name="retry">Retry</string>
     <string name="error_state_go_back">Go back</string>
     <string name="no_description">No description provided.</string>
@@ -653,7 +653,7 @@
     <string name="root_status_permission_needed">Allow root</string>
     <string name="root_status_unavailable">No root</string>
     <string name="root_grant_permission">Allow root access</string>
-    <string name="root_unavailable_hint">Root isn\'t available on this device. Install Magisk, KernelSU, or APatch first.</string>
+    <string name="root_unavailable_hint">Root isn't available on this device. Install Magisk, KernelSU, or APatch first.</string>
     <string name="auto_update_title">Auto-update apps</string>
     <string name="auto_update_description">Automatically download and install updates in background via the selected silent installer</string>
 
@@ -711,12 +711,12 @@
     <string name="import_summary_already_tracked">%1$d already tracked</string>
     <string name="import_summary_failed">%1$d failed</string>
     <string name="import_summary_non_github">%1$d not GitHub</string>
-    <string name="import_summary_non_github_caption">We don\'t track GitLab, F-Droid or HTML sources yet.</string>
+    <string name="import_summary_non_github_caption">We don't track GitLab, F-Droid or HTML sources yet.</string>
     <string name="import_summary_close">Done</string>
     <string name="import_summary_expand">Show details</string>
     <string name="import_summary_collapse">Hide details</string>
-    <string name="import_summary_unknown_format">Couldn\'t read this file</string>
-    <string name="import_summary_unknown_caption">It doesn\'t look like a GitHub Store or Obtainium export. Here\'s the start of the file:</string>
+    <string name="import_summary_unknown_format">Couldn't read this file</string>
+    <string name="import_summary_unknown_caption">It doesn't look like a GitHub Store or Obtainium export. Here's the start of the file:</string>
 
     <string name="add_from_starred_title">Add from starred</string>
     <string name="starred_picker_title">Add from starred</string>
@@ -734,13 +734,13 @@
     <string name="starred_picker_sign_in_required">Sign in to GitHub to see your starred repos.</string>
     <string name="starred_picker_rate_limited">GitHub rate limit reached. Resume to keep checking.</string>
     <string name="starred_picker_resume">Resume</string>
-    <string name="starred_picker_star_dedup_tooltip">Removing a star on GitHub won\'t untrack the app.</string>
+    <string name="starred_picker_star_dedup_tooltip">Removing a star on GitHub won't untrack the app.</string>
     <string name="import_apps_title">Import apps</string>
     <string name="import_apps_description">Paste the exported JSON to restore your tracked apps</string>
     <string name="import_apps_hint">Paste exported JSON here…</string>
 
     <string name="include_pre_releases_title">Default beta channel</string>
-    <string name="include_pre_releases_description">Newly tracked apps include beta builds by default. Already-tracked apps keep their own per-app channel setting (toggle it on the app\'s Details screen).</string>
+    <string name="include_pre_releases_description">Newly tracked apps include beta builds by default. Already-tracked apps keep their own per-app channel setting (toggle it on the app's Details screen).</string>
     <string name="confirm_uninstall_title">Uninstall app?</string>
     <string name="confirm_uninstall_message">Are you sure you want to uninstall %1$s? This action cannot be undone and app data may be lost.</string>
     <string name="confirm_discard_pending_title">Discard pending install?</string>
@@ -1145,12 +1145,12 @@
     <string name="announcements_profile_description">News, surveys, and important notices.</string>
     <string name="announcements_empty">Nothing to share right now.</string>
     <string name="announcements_last_refreshed">Last refreshed %1$s ago</string>
-    <string name="announcements_refresh_failed">Couldn\'t refresh — showing cached items.</string>
+    <string name="announcements_refresh_failed">Couldn't refresh — showing cached items.</string>
     <string name="announcements_just_now">just now</string>
     <string name="announcements_minutes_ago">%1$d min</string>
     <string name="announcements_hours_ago">%1$d h</string>
     <string name="announcements_days_ago">%1$d d</string>
-    <string name="announcements_acknowledge">I\'ve read this</string>
+    <string name="announcements_acknowledge">I've read this</string>
     <string name="announcements_acknowledged">Acknowledged</string>
     <string name="announcements_read_more">Read more</string>
     <string name="announcements_view_details">View details</string>
@@ -1169,19 +1169,19 @@
 
     <!-- Skip this version (issue #542) -->
     <string name="apps_skip_version">Skip this version</string>
-    <string name="apps_skip_version_unskip">Don\'t skip</string>
-    <string name="apps_skip_version_snackbar">Skipped %1$s — you\'ll be notified when a newer version arrives</string>
+    <string name="apps_skip_version_unskip">Don't skip</string>
+    <string name="apps_skip_version_snackbar">Skipped %1$s — you'll be notified when a newer version arrives</string>
     <string name="apps_unskip_version_snackbar">Update prompt enabled again</string>
-    <string name="apps_skip_version_error">Couldn\'t update skip preference</string>
-    <string name="apps_unskip_version_error">Couldn\'t restore the update notification</string>
+    <string name="apps_skip_version_error">Couldn't update skip preference</string>
+    <string name="apps_unskip_version_error">Couldn't restore the update notification</string>
     <string name="skipped_updates_entry_title">Skipped updates</string>
-    <string name="skipped_updates_entry_description">Versions you\'ve chosen to ignore</string>
+    <string name="skipped_updates_entry_description">Versions you've chosen to ignore</string>
     <string name="skipped_updates_title">Skipped updates</string>
     <string name="skipped_updates_empty_title">No skipped versions</string>
     <string name="skipped_updates_empty_description">When you skip an update on the apps screen, the entry will show up here so you can revert it.</string>
     <string name="skipped_updates_skipped_label">Skipped %1$s</string>
     <string name="skipped_updates_installed_label">Installed: %1$s</string>
-    <string name="skipped_updates_unskip_action">Don\'t skip</string>
+    <string name="skipped_updates_unskip_action">Don't skip</string>
     <string name="skipped_updates_unskipped_snackbar">Update prompt enabled for %1$s</string>
-    <string name="skipped_updates_unskip_failure">Couldn\'t update skip preference</string>
+    <string name="skipped_updates_unskip_failure">Couldn't update skip preference</string>
 </resources>
