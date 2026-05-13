@@ -279,51 +279,46 @@ private fun ReleaseAssetsItemsPicker(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (showAllPlatforms) {
-                    if (groups.isEmpty()) {
-                        item {
-                            Text(
-                                text = stringResource(Res.string.no_assets_in_list),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            )
+                // Grouped path only when the toggle is on AND the release
+                // has platform-classifiable assets. If toggle is on but
+                // `assetPlatformOf` rejected every asset (e.g. release
+                // ships only .zip bundles / extensionless binaries), we
+                // fall through to the OFF-mode `assetsList` render so
+                // the user still sees the current-platform installables
+                // instead of an empty sheet.
+                if (showAllPlatforms && groups.isNotEmpty()) {
+                    // Order: current-platform section first (it's the
+                    // primary install target), then the others.
+                    val sectionOrder =
+                        listOf(
+                            zed.rainxch.core.domain.model.DiscoveryPlatform.Android to Res.string.platform_section_android,
+                            zed.rainxch.core.domain.model.DiscoveryPlatform.Windows to Res.string.platform_section_windows,
+                            zed.rainxch.core.domain.model.DiscoveryPlatform.Macos to Res.string.platform_section_macos,
+                            zed.rainxch.core.domain.model.DiscoveryPlatform.Linux to Res.string.platform_section_linux,
+                        ).sortedByDescending { (platform, _) ->
+                            groups[platform]?.any { it.id in installableIds } == true
                         }
-                    } else {
-                        // Order: current-platform section first (it's the
-                        // primary install target), then the others.
-                        val sectionOrder =
-                            listOf(
-                                zed.rainxch.core.domain.model.DiscoveryPlatform.Android to Res.string.platform_section_android,
-                                zed.rainxch.core.domain.model.DiscoveryPlatform.Windows to Res.string.platform_section_windows,
-                                zed.rainxch.core.domain.model.DiscoveryPlatform.Macos to Res.string.platform_section_macos,
-                                zed.rainxch.core.domain.model.DiscoveryPlatform.Linux to Res.string.platform_section_linux,
-                            ).sortedByDescending { (platform, _) ->
-                                groups[platform]?.any { it.id in installableIds } == true
-                            }
-                        sectionOrder.forEach { (platform, labelRes) ->
-                            val assets = groups[platform].orEmpty()
-                            if (assets.isEmpty()) return@forEach
-                            val isCurrentDevice =
-                                assets.any { it.id in installableIds }
-                            item(key = "section-${platform.name}") {
-                                PlatformSectionCard(
-                                    platformLabel = stringResource(labelRes),
-                                    isCurrentDevice = isCurrentDevice,
-                                    installableIds = installableIds,
-                                    assets = assets,
-                                    selectedAsset = selectedAsset,
-                                    pinnedVariant = pinnedVariant,
-                                    onAssetClick = { asset ->
-                                        if (asset.id in installableIds) {
-                                            onSelect(asset)
-                                        } else {
-                                            onDownloadForTransfer(asset)
-                                        }
-                                    },
-                                )
-                            }
+                    sectionOrder.forEach { (platform, labelRes) ->
+                        val assets = groups[platform].orEmpty()
+                        if (assets.isEmpty()) return@forEach
+                        val isCurrentDevice =
+                            assets.any { it.id in installableIds }
+                        item(key = "section-${platform.name}") {
+                            PlatformSectionCard(
+                                platformLabel = stringResource(labelRes),
+                                isCurrentDevice = isCurrentDevice,
+                                installableIds = installableIds,
+                                assets = assets,
+                                selectedAsset = selectedAsset,
+                                pinnedVariant = pinnedVariant,
+                                onAssetClick = { asset ->
+                                    if (asset.id in installableIds) {
+                                        onSelect(asset)
+                                    } else {
+                                        onDownloadForTransfer(asset)
+                                    }
+                                },
+                            )
                         }
                     }
                 } else if (assetsList.isNotEmpty()) {
