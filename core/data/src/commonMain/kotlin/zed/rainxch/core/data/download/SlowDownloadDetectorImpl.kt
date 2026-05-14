@@ -15,6 +15,7 @@ import kotlin.time.Clock
 import zed.rainxch.core.data.mirror.MirrorPersistence
 import zed.rainxch.core.data.network.ProxyManager
 import zed.rainxch.core.domain.model.DownloadProgress
+import zed.rainxch.core.domain.model.TrafficKind
 import zed.rainxch.core.domain.network.SlowDownloadDetector
 
 class SlowDownloadDetectorImpl(
@@ -69,7 +70,13 @@ class SlowDownloadDetectorImpl(
         }
         if (recentSlowEvents.size < triggerCount) return
 
-        if (ProxyManager.currentMirrorTemplate() != null) return
+        // A mirror that already handles release-asset traffic means the user
+        // is on a slow path despite mirroring — don't double-nag them with the
+        // pick-a-mirror suggestion. A raw-file-only mirror (e.g. jsDelivr) is
+        // bypassed for release downloads, so they're effectively Direct and
+        // still benefit from a release-capable mirror suggestion.
+        val active = ProxyManager.currentMirror()
+        if (active != null && TrafficKind.RELEASE_ASSET in active.trafficKinds) return
         val prefs = preferences.data.first()
         if (prefs[MirrorPersistence.AUTO_SUGGEST_DISMISSED_KEY] == true) return
         val snoozeUntil = prefs[MirrorPersistence.AUTO_SUGGEST_SNOOZE_UNTIL_KEY] ?: 0L

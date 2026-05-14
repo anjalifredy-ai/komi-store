@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import zed.rainxch.core.data.network.MirrorRewriter
 import zed.rainxch.core.data.network.ProxyManager
 import zed.rainxch.core.domain.model.DownloadProgress
+import zed.rainxch.core.domain.model.TrafficKind
 import zed.rainxch.core.domain.network.Downloader
 import zed.rainxch.core.domain.system.MultiSourceDownloader
 
@@ -20,11 +21,16 @@ class MultiSourceDownloaderImpl(
         githubUrl: String,
         suggestedFileName: String?,
     ): Flow<DownloadProgress> {
-        val template = ProxyManager.currentMirrorTemplate()
-        if (template == null) {
+        val active = ProxyManager.currentMirror()
+        // The multi-source race targets release-asset downloads. A mirror that
+        // doesn't list RELEASE_ASSET (e.g. jsDelivr, raw-files only) can't
+        // serve these URLs — fall through to a Direct download.
+        if (active == null || TrafficKind.RELEASE_ASSET !in active.trafficKinds) {
             return downloader.download(githubUrl, suggestedFileName)
         }
-        val mirrorUrl = MirrorRewriter.applyTemplate(template, githubUrl)
+        val mirrorUrl =
+            MirrorRewriter.applyTemplate(active.template, githubUrl)
+                ?: return downloader.download(githubUrl, suggestedFileName)
         return raceDownloads(githubUrl, mirrorUrl, suggestedFileName)
     }
 

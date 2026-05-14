@@ -12,20 +12,19 @@ import kotlinx.coroutines.launch
 import zed.rainxch.core.domain.model.MirrorPreference
 import zed.rainxch.core.domain.model.ProxyConfig
 import zed.rainxch.core.domain.model.ProxyScope
+import zed.rainxch.core.domain.model.TrafficKind
 import zed.rainxch.core.domain.repository.MirrorRepository
 
-/**
- * Live in-memory cache of the three per-scope proxy configurations
- * **and** the resolved mirror URL template. Writers (the proxy
- * repository and the mirror collector) push updates here; consumers
- * (HTTP clients, the MirrorRewriteInterceptor) read synchronously
- * via [configFlow] / [currentMirrorTemplate].
- */
+data class MirrorActive(
+    val template: String,
+    val trafficKinds: Set<TrafficKind>,
+)
+
 object ProxyManager {
     private val flows: Map<ProxyScope, MutableStateFlow<ProxyConfig>> =
         ProxyScope.entries.associateWith { MutableStateFlow<ProxyConfig>(ProxyConfig.System) }
 
-    private val mirrorTemplate = AtomicReference<String?>(null)
+    private val mirror = AtomicReference<MirrorActive?>(null)
     private var mirrorCollectorJob: Job? = null
 
     fun configFlow(scope: ProxyScope): StateFlow<ProxyConfig> = flows.getValue(scope).asStateFlow()
@@ -40,22 +39,19 @@ object ProxyManager {
     }
 
     /**
-     * Effective mirror template for the current preference, or null
-     * when Direct. Read by [zed.rainxch.core.data.network.MirrorRewriteInterceptor]
-     * on every outbound GitHub request — must be hot-path safe (atomic, no I/O).
+     * Resolved active mirror — template plus the traffic kinds it can serve.
+     * Read on every outbound GitHub request; must be hot-path safe (atomic, no I/O).
+     * Null when preference is Direct or the catalog has no template for the
+     * selected mirror.
      */
-    fun currentMirrorTemplate(): String? = mirrorTemplate.get()
+    fun currentMirror(): MirrorActive? = mirror.get()
 
     /**
-     * Starts a long-lived collector that mirrors [MirrorRepository.observePreference]
-     * into the atomic snapshot used by [currentMirrorTemplate]. Idempotent —
-     * subsequent calls are no-ops as long as the previous job is alive.
-     *
-     * Looks up the catalog via [MirrorRepository.observeCatalog] to resolve
-     * `Selected(id)` → template string. If the catalog is empty (cold start
-     * before bundled fallback emits) the template stays null until the
-     * first emission lands.
+     * Convenience accessor for callers that only need the template string and
+     * don't gate by traffic kind. Prefer [currentMirror] for new code.
      */
+    fun currentMirrorTemplate(): String? = mirror.get()?.template
+
     fun startMirrorCollector(
         repository: MirrorRepository,
         scope: CoroutineScope,
@@ -69,12 +65,23 @@ object ProxyManager {
                 ) { pref, catalog ->
                     when (pref) {
                         MirrorPreference.Direct -> null
-                        is MirrorPreference.Custom -> pref.template
-                        is MirrorPreference.Selected ->
-                            catalog.firstOrNull { it.id == pref.id }?.urlTemplate
+                        is MirrorPreference.Custom ->
+                            MirrorActive(
+                                template = pref.template,
+                                trafficKinds = setOf(TrafficKind.RELEASE_ASSET, TrafficKind.RAW_FILE),
+                            )
+                        is MirrorPreference.Selected -> {
+                            val cfg = catalog.firstOrNull { it.id == pref.id }
+                            val template = cfg?.urlTemplate
+                            if (cfg == null || template == null) {
+                                null
+                            } else {
+                                MirrorActive(template = template, trafficKinds = cfg.trafficKinds)
+                            }
+                        }
                     }
-                }.collect { template ->
-                    mirrorTemplate.set(template)
+                }.collect { active ->
+                    mirror.set(active)
                 }
             }
     }
