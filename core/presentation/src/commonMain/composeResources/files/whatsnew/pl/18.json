@@ -8,7 +8,7 @@
       "type": "NEW",
       "bullets": [
         "Instalacja na macOS przez Homebrew — `brew install --cask github-store` z naszego nowego tap.",
-        "Dwa nowe mirrory społeczności — fastgit.cc i fastly.jsdelivr.net. Przydatne, gdy GitHub jest ograniczony."
+        "Dodano fastly.jsdelivr.net jako mirror społeczności. Przydatne, gdy GitHub jest ograniczony."
       ]
     },
     {
