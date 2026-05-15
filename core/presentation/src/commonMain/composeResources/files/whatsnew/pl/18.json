@@ -9,7 +9,8 @@
       "bullets": [
         "Instalacja na macOS przez Homebrew — `brew install --cask github-store` z naszego nowego tap.",
         "Dodano fastly.jsdelivr.net jako mirror społeczności. Przydatne, gdy GitHub jest ograniczony.",
-        "Dołączyliśmy do koalicji Keep Android Open — baner w Apps wyjaśnia dlaczego."
+        "Dołączyliśmy do koalicji Keep Android Open — baner w Apps wyjaśnia dlaczego.",
+        "Logowanie GitHub używa teraz standardowego przepływu webowego — tap, autoryzacja w przeglądarce, gotowe. Bez 8-cyfrowego kodu."
       ]
     },
     {

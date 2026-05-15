@@ -9,7 +9,8 @@
       "bullets": [
         "التثبيت على macOS عبر Homebrew — `brew install --cask github-store` من المستودع الجديد.",
         "تمت إضافة fastly.jsdelivr.net كمرآة مجتمعية. مفيدة عند تقييد GitHub.",
-        "انضممنا إلى تحالف Keep Android Open — لافتة في Apps توضح السبب."
+        "انضممنا إلى تحالف Keep Android Open — لافتة في Apps توضح السبب.",
+        "تسجيل الدخول إلى GitHub يستخدم الآن تدفق الويب القياسي — انقر، صادق في المتصفح، انتهى. لا حاجة لرمز 8 أرقام."
       ]
     },
     {
