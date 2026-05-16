@@ -50,7 +50,7 @@ class RootServiceManager(
      */
     fun requestPermission() {
         scope.launch(Dispatchers.IO) {
-            val su = cachedSuPath ?: locateSuBinary() ?: run {
+            val su = cachedSuPath ?: locateSuBinary()?.path ?: run {
                 Logger.d(TAG) { "requestPermission() — no su binary on device, skipping" }
                 refreshStatusBlocking()
                 return@launch
@@ -89,7 +89,7 @@ class RootServiceManager(
         installerPackageName: String?,
     ): Int? =
         withContext(Dispatchers.IO) {
-            val su = cachedSuPath ?: locateSuBinary() ?: run {
+            val su = cachedSuPath ?: locateSuBinary()?.path ?: run {
                 Logger.w(TAG) { "installPackage() — no su binary available" }
                 return@withContext null
             }
@@ -202,7 +202,7 @@ class RootServiceManager(
 
     suspend fun uninstallPackage(packageName: String): Int? =
         withContext(Dispatchers.IO) {
-            val su = cachedSuPath ?: locateSuBinary() ?: return@withContext null
+            val su = cachedSuPath ?: locateSuBinary()?.path ?: return@withContext null
             if (!PACKAGE_NAME_PATTERN.matches(packageName)) {
                 Logger.w(TAG) {
                     "uninstallPackage() — rejecting non-conformant packageName='$packageName'"
@@ -248,41 +248,71 @@ class RootServiceManager(
     }
 
     private fun computeStatus(): RootStatus {
-        val su = locateSuBinary() ?: run {
+        val probe = locateSuBinary()
+        if (probe == null) {
             cachedSuPath = null
             return RootStatus.NOT_AVAILABLE
         }
-        cachedSuPath = su
-        // `su -c id` is the standard probe. We wrap it in a short timeout
-        // because a denied request on some root managers can hang waiting
-        // for the user to dismiss the dialog. NOT_RUNNING isn't a state we
-        // model for root (unlike Shizuku); a denial is reported as
-        // PERMISSION_NEEDED so the UI prompts the user to grant.
-        return try {
-            val proc = Runtime.getRuntime().exec(arrayOf(su, "-c", "id"))
-            val finished = proc.waitFor(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            if (!finished) {
-                Logger.d(TAG) { "computeStatus() — su probe timed out, treating as PERMISSION_NEEDED" }
-                proc.destroyForcibly()
-                return RootStatus.PERMISSION_NEEDED
-            }
-            val output = BufferedReader(InputStreamReader(proc.inputStream)).readText().trim()
-            val exit = proc.exitValue()
-            when {
-                exit == 0 && output.contains("uid=0") -> RootStatus.READY
-                else -> RootStatus.PERMISSION_NEEDED
-            }
-        } catch (e: Exception) {
-            Logger.w(TAG) { "computeStatus() — su probe threw: ${e.javaClass.simpleName}: ${e.message}" }
-            RootStatus.PERMISSION_NEEDED
+        cachedSuPath = probe.path
+        return when (probe.kind) {
+            ProbeResultKind.UID_ZERO -> RootStatus.READY
+            ProbeResultKind.NOT_ZERO -> RootStatus.PERMISSION_NEEDED
         }
     }
 
-    private fun locateSuBinary(): String? {
+    /**
+     * Locate a working `su` binary by exec-probing each candidate.
+     *
+     * Why exec-probe instead of `File.exists()`: on Android 13+ the
+     * `untrusted_app` SELinux profile blocks stat'ing `/data/adb/...`
+     * paths, so `File("/data/adb/magisk/su").exists()` returns false
+     * even when Magisk is installed and would grant root. Magisk /
+     * KernelSU / APatch hook the exec syscall regardless of whether
+     * the app can stat the path, so a direct exec is the only reliable
+     * probe on modern Android.
+     */
+    private fun locateSuBinary(): SuProbe? {
         for (path in SU_PATHS) {
-            if (File(path).exists()) return path
+            val result = probeSu(path) ?: continue
+            return SuProbe(path = path, kind = result)
         }
         return null
+    }
+
+    private fun probeSu(path: String): ProbeResultKind? =
+        try {
+            val proc = Runtime.getRuntime().exec(arrayOf(path, "-c", "id"))
+            val finished = proc.waitFor(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            if (!finished) {
+                Logger.d(TAG) { "probeSu($path) timed out, treating as PERMISSION_NEEDED" }
+                proc.destroyForcibly()
+                ProbeResultKind.NOT_ZERO
+            } else {
+                val output = BufferedReader(InputStreamReader(proc.inputStream)).readText().trim()
+                if (proc.exitValue() == 0 && output.contains("uid=0")) {
+                    ProbeResultKind.UID_ZERO
+                } else {
+                    ProbeResultKind.NOT_ZERO
+                }
+            }
+        } catch (_: java.io.IOException) {
+            // exec failed — binary doesn't exist at this path on this device.
+            // Skip to next candidate. Not logged at warn level because this is
+            // the expected outcome for most paths in the SU_PATHS list.
+            null
+        } catch (e: Exception) {
+            Logger.w(TAG) { "probeSu($path) threw: ${e.javaClass.simpleName}: ${e.message}" }
+            null
+        }
+
+    private data class SuProbe(
+        val path: String,
+        val kind: ProbeResultKind,
+    )
+
+    private enum class ProbeResultKind {
+        UID_ZERO,
+        NOT_ZERO,
     }
 
     companion object {
