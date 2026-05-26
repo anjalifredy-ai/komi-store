@@ -12,7 +12,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,21 +83,16 @@ fun ImportProgressScreen(
                 textAlign = TextAlign.Center,
             )
 
-            // Skip affordance fades in once the scan crosses the
-            // long-running threshold (the VM flips `canSkip` after
-            // SKIP_REVEAL_DELAY_MS). Hidden during a fast scan so it
-            // doesn't add a flicker the user has no time to notice.
             AnimatedVisibility(
                 visible = canSkip,
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
-                TextButton(onClick = onSkip) {
-                    Text(
-                        text = stringResource(Res.string.external_import_progress_skip),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
+                GhsButton(
+                    onClick = onSkip,
+                    label = stringResource(Res.string.external_import_progress_skip),
+                    variant = GhsButtonVariant.Text,
+                )
             }
         }
     }

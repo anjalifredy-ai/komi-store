@@ -17,12 +17,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import zed.rainxch.core.domain.model.FavoriteRepo
-import zed.rainxch.core.domain.repository.AuthenticationState
+import zed.rainxch.core.domain.repository.UserSessionRepository
 import zed.rainxch.core.domain.repository.FavouritesRepository
 import zed.rainxch.core.domain.repository.StarredRepository
 import zed.rainxch.core.domain.repository.TweaksRepository
 import zed.rainxch.githubstore.core.presentation.res.*
-import zed.rainxch.profile.domain.repository.ProfileRepository
 import zed.rainxch.starred.presentation.mappers.toStarredRepositoryUi
 import zed.rainxch.starred.presentation.model.StarredRepositoryUi
 import zed.rainxch.starred.presentation.model.StarredSortRule
@@ -30,10 +29,9 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 class StarredReposViewModel(
-    private val authenticationState: AuthenticationState,
+    private val userSessionRepository: UserSessionRepository,
     private val starredRepository: StarredRepository,
     private val favouritesRepository: FavouritesRepository,
-    private val profileRepository: ProfileRepository,
     private val tweaksRepository: TweaksRepository,
 ) : ViewModel() {
     private var hasLoadedInitialData = false
@@ -54,7 +52,7 @@ class StarredReposViewModel(
 
     private fun checkAuthAndLoad() {
         viewModelScope.launch {
-            val isAuthenticated = authenticationState.isCurrentlyUserLoggedIn()
+            val isAuthenticated = userSessionRepository.isCurrentlyUserLoggedIn()
 
             _state.update { it.copy(isAuthenticated = isAuthenticated) }
 
@@ -70,7 +68,7 @@ class StarredReposViewModel(
             combine(
                 starredRepository.getAllStarred(),
                 favouritesRepository.getAllFavorites(),
-                profileRepository.getUser(),
+                userSessionRepository.getUser(),
                 tweaksRepository.getStarredSortRule(),
             ) { starred, favorites, user, sortStored ->
                 val sortRule = StarredSortRule.fromName(sortStored)
@@ -171,10 +169,7 @@ class StarredReposViewModel(
             }
 
             StarredReposAction.OnRefresh -> {
-                // Refresh may return a list that no longer matches the active
-                // search query, leaving the user staring at an empty grid with
-                // a stale filter still applied. Clearing the query removes the
-                // ambiguity.
+
                 _state.update { it.copy(searchQuery = "") }
                 syncStarredRepos(forceRefresh = true)
             }

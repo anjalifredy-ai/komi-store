@@ -1,6 +1,10 @@
 package zed.rainxch.details.presentation.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,11 +32,15 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import zed.rainxch.core.presentation.components.overlays.GhsBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,9 +57,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.draw.clip
 import zed.rainxch.core.domain.model.ApkInspection
 import zed.rainxch.core.domain.model.ApkPermission
 import zed.rainxch.core.domain.model.ProtectionLevel
+import zed.rainxch.core.presentation.theme.tokens.Radii
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.apk_inspect_compatibility
 import zed.rainxch.githubstore.core.presentation.res.apk_inspect_components
@@ -89,12 +99,9 @@ fun ApkInspectSheet(
     isLoading: Boolean,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
+    GhsBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         when {
             isLoading -> LoadingState()
@@ -136,7 +143,7 @@ private fun EmptyState() {
 private fun InspectionContent(inspection: ApkInspection) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { Header(inspection) }
@@ -160,17 +167,20 @@ private fun Header(inspection: ApkInspection) {
         )
         Text(
             text = inspection.appLabel,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+            ),
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.copyableOnLongPress(inspection.appLabel),
         )
         Text(
             text = inspection.packageName,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontFamily = FontFamily.Monospace,
+            modifier = Modifier.copyableOnLongPress(inspection.packageName),
         )
         val sourceLabel = when (inspection.source) {
             ApkInspection.Source.FILE -> stringResource(Res.string.apk_inspect_source_file)
@@ -293,17 +303,6 @@ private fun PermissionsSection(permissions: List<ApkPermission>) {
             return@InspectSection
         }
 
-        // Per-group expand/collapse state lives in the sheet itself —
-        // not worth a VM round-trip. NORMAL / UNKNOWN buckets start
-        // collapsed because they're the long, low-signal lists; the
-        // spicy DANGEROUS / PRIVILEGED / SIGNATURE groups are open.
-        //
-        // Keyed on the permissions reference so opening the sheet for a
-        // different APK rebuilds the map with that APK's defaults
-        // (otherwise a previous app's "expanded NORMAL" choice would
-        // leak forward — fine right now because the sheet is
-        // recreated per visibility toggle, but cheap insurance against
-        // a future change that keeps the sheet alive across inspections).
         val expanded =
             remember(permissions) {
                 mutableStateMapOf<ProtectionLevel, Boolean>().apply {
@@ -378,10 +377,11 @@ private fun PermissionGroupHeader(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+            ),
             color = color,
-            fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f, fill = false),
         )
         Surface(
@@ -435,9 +435,7 @@ private fun PermissionRow(permission: ApkPermission) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // Demoted to a footnote — small, lower-opacity, monospace.
-            // The technical name is useful for search and bug reports
-            // but it shouldn't compete with the human-readable label.
+
             Text(
                 text = permission.name,
                 style = MaterialTheme.typography.labelSmall,
@@ -445,6 +443,7 @@ private fun PermissionRow(permission: ApkPermission) {
                 fontFamily = FontFamily.Monospace,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.copyableOnLongPress(permission.name),
             )
         }
         Surface(
@@ -534,21 +533,42 @@ private fun InspectSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(Radii.chip)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.width(10.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
                 color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Bold,
             )
         }
-        content()
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = Radii.row,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                content()
+            }
+        }
     }
 }
 
@@ -567,12 +587,17 @@ private fun InspectRow(label: String, value: String, monospace: Boolean = false)
                 modifier = Modifier.width(120.dp),
             )
         }
+        val valueModifier = if (monospace) {
+            Modifier.weight(1f).copyableOnLongPress(value)
+        } else {
+            Modifier.weight(1f)
+        }
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface,
             fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default,
-            modifier = Modifier.weight(1f),
+            modifier = valueModifier,
         )
     }
 }
@@ -580,8 +605,9 @@ private fun InspectRow(label: String, value: String, monospace: Boolean = false)
 @Composable
 private fun DangerNote(text: String) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = Radii.chip,
         color = MaterialTheme.colorScheme.errorContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.35f)),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -618,6 +644,21 @@ private fun protectionStyle(level: ProtectionLevel): Pair<Color, String> {
         ProtectionLevel.NORMAL -> neutral to stringResource(Res.string.apk_inspect_protection_normal)
         ProtectionLevel.UNKNOWN -> muted to stringResource(Res.string.apk_inspect_protection_unknown)
     }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun Modifier.copyableOnLongPress(value: String): Modifier {
+    @Suppress("DEPRECATION")
+    val clipboard = LocalClipboardManager.current
+    val haptic = LocalHapticFeedback.current
+    return this.combinedClickable(
+        onClick = {},
+        onLongClick = {
+            clipboard.setText(AnnotatedString(value))
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        },
+    )
 }
 
 private fun formatBytes(bytes: Long): String =

@@ -24,11 +24,16 @@ import zed.rainxch.core.domain.logging.GitHubStoreLogger
 import zed.rainxch.core.domain.model.Platform
 import zed.rainxch.core.domain.model.RateLimitException
 import zed.rainxch.core.domain.repository.FavouritesRepository
+import io.ktor.client.request.headers
+import io.ktor.client.request.url
+import zed.rainxch.devprofile.data.dto.ContributionsResponse
 import zed.rainxch.devprofile.data.dto.GitHubRepoResponse
 import zed.rainxch.devprofile.data.dto.GitHubUserResponse
 import zed.rainxch.devprofile.data.mappers.toDeveloperProfile
 import zed.rainxch.devprofile.data.mappers.toDomain
 import zed.rainxch.devprofile.data.mappers.toGitHubRepoResponse
+import zed.rainxch.devprofile.domain.model.ContributionCalendar
+import zed.rainxch.devprofile.domain.model.ContributionDay
 import zed.rainxch.devprofile.domain.model.DeveloperProfile
 import zed.rainxch.devprofile.domain.model.DeveloperRepository
 import zed.rainxch.devprofile.domain.repository.DeveloperProfileRepository
@@ -70,6 +75,33 @@ class DeveloperProfileRepositoryImpl(
                 throw e
             } catch (e: Exception) {
                 logger.error("Failed to fetch developer profile for $username")
+                Result.failure(e)
+            }
+        }
+    }
+
+    override suspend fun getContributionCalendar(username: String): Result<ContributionCalendar> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = httpClient.get {
+                    url("https://github-contributions-api.jogruber.de/v4/$username?y=last")
+                    headers { remove("X-GitHub-Token") }
+                }
+                if (!response.status.isSuccess()) {
+                    return@withContext Result.failure(
+                        Exception("Failed to fetch contributions: ${response.status.description}"),
+                    )
+                }
+                val body: ContributionsResponse = response.body()
+                val days = body.contributions.map {
+                    ContributionDay(date = it.date, count = it.count, level = it.level)
+                }
+                val total = body.total["lastYear"] ?: body.total.values.firstOrNull() ?: 0
+                Result.success(ContributionCalendar(totalLastYear = total, days = days))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logger.warn("Failed to fetch contributions for $username: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -170,34 +202,43 @@ class DeveloperProfileRepositoryImpl(
         val installedApps = installedAppsDao.getAppsByRepoId(repo.id)
         val isFavorite = favoriteIds.contains(repo.id)
 
-        val (hasReleases, hasInstallableAssets, latestVersion) =
-            checkReleaseInfo(
-                owner = repo.fullName.split("/")[0],
-                repoName = repo.name,
-            )
+        val info = checkReleaseInfo(
+            owner = repo.fullName.split("/")[0],
+            repoName = repo.name,
+        )
 
         return repo.toDomain(
-            hasReleases = hasReleases,
-            hasInstallableAssets = hasInstallableAssets,
-            // Treat a repo as installed if any tracked app has
-            // completed install; a parked-download row left by a
-            // failed install would otherwise leak "Installed" into
-            // the UI (see `InstalledApp.isReallyInstalled`).
+            hasReleases = info.hasReleases,
+            hasInstallableAssets = info.hasInstallable,
             isInstalled = installedApps.any { !it.isPendingInstall },
             isFavorite = isFavorite,
-            latestVersion = latestVersion,
+            latestVersion = info.latestVersion,
+            latestReleaseAt = info.publishedAt,
         )
+    }
+
+    private data class ReleaseInfo(
+        val hasReleases: Boolean,
+        val hasInstallable: Boolean,
+        val latestVersion: String?,
+        val publishedAt: String?,
+    ) {
+        companion object {
+            val EMPTY = ReleaseInfo(false, false, null, null)
+        }
     }
 
     private suspend fun checkReleaseInfo(
         owner: String,
         repoName: String,
-    ): Triple<Boolean, Boolean, String?> {
+    ): ReleaseInfo {
         val backendResult = backendApiClient.getReleases(owner, repoName, perPage = 10)
         backendResult.fold(
             onSuccess = { releases ->
                 val stableRelease = releases.firstOrNull { it.draft != true && it.prerelease != true }
-                if (stableRelease == null) return Triple(releases.isNotEmpty(), false, null)
+                if (stableRelease == null) {
+                    return ReleaseInfo(releases.isNotEmpty(), false, null, null)
+                }
                 val hasInstallable = stableRelease.assets.any { asset ->
                     val name = asset.name.lowercase()
                     when (platform) {
@@ -208,10 +249,15 @@ class DeveloperProfileRepositoryImpl(
                             name.endsWith(".rpm") || name.endsWith(".pkg.tar.zst")
                     }
                 }
-                return Triple(true, hasInstallable, stableRelease.tagName)
+                return ReleaseInfo(
+                    hasReleases = true,
+                    hasInstallable = hasInstallable,
+                    latestVersion = stableRelease.tagName,
+                    publishedAt = stableRelease.publishedAt,
+                )
             },
             onFailure = { error ->
-                if (!shouldFallbackToGithubOrRethrow(error)) return Triple(false, false, null)
+                if (!shouldFallbackToGithubOrRethrow(error)) return ReleaseInfo.EMPTY
             },
         )
 
@@ -222,7 +268,7 @@ class DeveloperProfileRepositoryImpl(
                 }
 
             if (!response.status.isSuccess()) {
-                return Triple(false, false, null)
+                return ReleaseInfo.EMPTY
             }
 
             val releases: List<ReleaseNetworkModel> = response.body()
@@ -233,36 +279,26 @@ class DeveloperProfileRepositoryImpl(
                 }
 
             if (stableRelease == null) {
-                return Triple(releases.isNotEmpty(), false, null)
+                return ReleaseInfo(releases.isNotEmpty(), false, null, null)
             }
 
             val hasInstallableAssets =
                 stableRelease.assets.any { asset ->
                     val name = asset.name.lowercase()
                     when (platform) {
-                        Platform.ANDROID -> {
-                            name.endsWith(".apk")
-                        }
-
-                        Platform.WINDOWS -> {
-                            name.endsWith(".msi") || name.endsWith(".exe")
-                        }
-
-                        Platform.MACOS -> {
-                            name.endsWith(".dmg") || name.endsWith(".pkg")
-                        }
-
-                        Platform.LINUX -> {
-                            name.endsWith(".appimage") || name.endsWith(".deb") ||
-                                name.endsWith(".rpm") || name.endsWith(".pkg.tar.zst")
-                        }
+                        Platform.ANDROID -> name.endsWith(".apk")
+                        Platform.WINDOWS -> name.endsWith(".msi") || name.endsWith(".exe")
+                        Platform.MACOS -> name.endsWith(".dmg") || name.endsWith(".pkg")
+                        Platform.LINUX -> name.endsWith(".appimage") || name.endsWith(".deb") ||
+                            name.endsWith(".rpm") || name.endsWith(".pkg.tar.zst")
                     }
                 }
 
-            Triple(
-                true,
-                hasInstallableAssets,
-                if (hasInstallableAssets) stableRelease.tagName else null,
+            ReleaseInfo(
+                hasReleases = true,
+                hasInstallable = hasInstallableAssets,
+                latestVersion = stableRelease.tagName,
+                publishedAt = stableRelease.publishedAt,
             )
         } catch (e: RateLimitException) {
             throw e
@@ -270,7 +306,7 @@ class DeveloperProfileRepositoryImpl(
             throw e
         } catch (e: Exception) {
             logger.warn("Failed to check releases for $owner/$repoName : ${e.message}")
-            Triple(false, false, null)
+            ReleaseInfo.EMPTY
         }
     }
 

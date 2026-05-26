@@ -5,6 +5,7 @@ import io.ktor.http.encodeURLParameter
 import zed.rainxch.tweaks.presentation.feedback.FeedbackState
 import zed.rainxch.tweaks.presentation.feedback.model.FeedbackCategory
 import zed.rainxch.tweaks.presentation.feedback.model.FeedbackChannel
+import zed.rainxch.tweaks.presentation.feedback.model.FeedbackTopic
 
 object FeedbackComposer {
     const val FEEDBACK_EMAIL = "hello@github-store.org"
@@ -23,6 +24,9 @@ object FeedbackComposer {
     fun composeBody(state: FeedbackState, channel: FeedbackChannel): String {
         val builder = StringBuilder()
 
+        builder.append("**Type:** ").append(state.category.displayLabel())
+            .append(" · **Area:** ").append(state.topic.displayLabel())
+
         builder.appendSection("Description", state.description)
 
         when (state.category) {
@@ -38,7 +42,7 @@ object FeedbackComposer {
                 builder.appendSection("Current behaviour", state.currentBehaviour)
                 builder.appendSection("Desired behaviour", state.desiredBehaviour)
             }
-            FeedbackCategory.OTHER -> { /* no extra fields */ }
+            FeedbackCategory.OTHER -> {   }
         }
 
         if (state.attachDiagnostics) {
@@ -47,6 +51,7 @@ object FeedbackComposer {
                 builder.append("- App: GitHub Store v").append(d.appVersion).append('\n')
                 builder.append("- Platform: ").append(d.platform).append(' ').append(d.osVersion).append('\n')
                 builder.append("- Locale: ").append(d.locale).append('\n')
+                builder.append("- Theme: ").append(d.themePalette).append(" / ").append(d.themeMode).append('\n')
                 d.installerType?.let { builder.append("- Installer: ").append(it).append('\n') }
                 if (channel == FeedbackChannel.GITHUB) {
                     d.githubUsername?.let { builder.append("- GitHub user: @").append(it).append('\n') }
@@ -62,6 +67,24 @@ object FeedbackComposer {
         if (trimmed.isEmpty()) return
         if (isNotEmpty()) append("\n\n")
         append("## ").append(title).append('\n').append(trimmed)
+    }
+
+    private fun FeedbackCategory.displayLabel(): String = when (this) {
+        FeedbackCategory.BUG -> "Bug"
+        FeedbackCategory.FEATURE_REQUEST -> "Feature request"
+        FeedbackCategory.CHANGE_REQUEST -> "Change request"
+        FeedbackCategory.OTHER -> "Other"
+    }
+
+    private fun FeedbackTopic.displayLabel(): String = when (this) {
+        FeedbackTopic.INSTALL_UPDATE -> "Install & updates"
+        FeedbackTopic.SEARCH_DISCOVERY -> "Search & discovery"
+        FeedbackTopic.REPO_DETAILS -> "Repo details"
+        FeedbackTopic.AUTH_ACCOUNT -> "Auth & account"
+        FeedbackTopic.UI_UX -> "UI / UX"
+        FeedbackTopic.TRANSLATION -> "Translation"
+        FeedbackTopic.PERFORMANCE -> "Performance"
+        FeedbackTopic.OTHER -> "Other"
     }
 
     private fun String.truncateToCap(): String {

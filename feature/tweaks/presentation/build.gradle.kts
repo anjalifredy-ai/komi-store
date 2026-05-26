@@ -7,29 +7,22 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(libs.kotlin.stdlib)
+                implementation(libs.kotlinx.collections.immutable)
 
                 implementation(projects.core.domain)
                 implementation(projects.core.data)
                 implementation(projects.core.presentation)
-                implementation(projects.feature.profile.domain)
-
-                implementation(libs.androidx.compose.ui.tooling.preview)
-                implementation(libs.jetbrains.compose.components.resources)
-                implementation(libs.touchlab.kermit)
-                implementation(libs.kotlinx.collections.immutable)
 
                 api(libs.ktor.client.core)
 
-            }
-        }
+                implementation(libs.touchlab.kermit)
+                implementation(libs.kotlinx.serialization.json)
 
-        androidMain {
-            dependencies {
-            }
-        }
+                implementation(libs.coil3.compose)
+                implementation(libs.coil3.svg)
 
-        jvmMain {
-            dependencies {
+                implementation(libs.androidx.compose.ui.tooling.preview)
+                implementation(libs.jetbrains.compose.components.resources)
             }
         }
     }

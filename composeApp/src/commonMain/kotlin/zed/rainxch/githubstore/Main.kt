@@ -10,6 +10,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
 import kotlinx.coroutines.delay
 import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.auth.presentation.AuthDeepLinkBus
@@ -33,11 +35,8 @@ import zed.rainxch.githubstore.app.whatsnew.WhatsNewViewModel
 
 @Composable
 fun App(deepLinkUri: String? = null) {
-    // Wire Coil's singleton ImageLoader with the SVG decoder so README
-    // images that point to .svg URLs (shields.io badges, diagrams,
-    // hero images) render natively instead of failing silently.
-    coil3.compose.setSingletonImageLoaderFactory { context ->
-        coil3.ImageLoader
+    setSingletonImageLoaderFactory { context ->
+        ImageLoader
             .Builder(context)
             .components { add(coil3.svg.SvgDecoder.Factory()) }
             .build()
@@ -48,6 +47,16 @@ fun App(deepLinkUri: String? = null) {
 
     val navController = rememberNavController()
     val currentScreen = navController.currentBackStackEntryAsState().value.getCurrentScreen()
+
+    LaunchedEffect(state.onboardingComplete) {
+        if (state.onboardingComplete == false &&
+            currentScreen !is GithubStoreGraph.OnboardingScreen
+        ) {
+            navController.navigate(GithubStoreGraph.OnboardingScreen) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
     LaunchedEffect(deepLinkUri) {
         deepLinkUri?.let { uri ->
@@ -62,9 +71,6 @@ fun App(deepLinkUri: String? = null) {
                 }
 
                 DeepLinkDestination.Apps -> {
-                    // Pending-install notification dropped us here.
-                    // Navigate to the apps tab so the user can finish
-                    // the deferred install from the row.
                     navController.navigate(GithubStoreGraph.AppsScreen) {
                         popUpTo(GithubStoreGraph.HomeScreen) {
                             saveState = true
@@ -96,8 +102,25 @@ fun App(deepLinkUri: String? = null) {
                     }
                 }
 
+                DeepLinkDestination.Tweaks -> {
+                    navController.navigate(GithubStoreGraph.TweaksScreen) {
+                        launchSingleTop = true
+                    }
+                }
+
+                DeepLinkDestination.About -> {
+                    navController.navigate(GithubStoreGraph.AboutScreen) {
+                        launchSingleTop = true
+                    }
+                }
+
+                DeepLinkDestination.TweaksLicenses -> {
+                    navController.navigate(GithubStoreGraph.LicensesScreen) {
+                        launchSingleTop = true
+                    }
+                }
+
                 DeepLinkDestination.None -> {
-                    // ignore unrecognized deep links
                 }
             }
         }
@@ -128,12 +151,6 @@ fun App(deepLinkUri: String? = null) {
     ) {
         ApplyAndroidSystemBars(state.isDarkTheme)
 
-        // Suppress the rate-limit dialog while the user is on the auth
-        // screen. They already accepted the prompt and are mid-sign-in;
-        // re-emitting the same dialog over the auth UI is noise that
-        // also blocks them from finishing the device-flow steps. Also
-        // flush any pending flag set by background API calls during
-        // auth, so it doesn't ghost back when the user returns home.
         val onAuthScreen = currentScreen is GithubStoreGraph.AuthenticationScreen
         LaunchedEffect(onAuthScreen, state.showRateLimitDialog) {
             if (onAuthScreen && state.showRateLimitDialog) {
@@ -169,8 +186,6 @@ fun App(deepLinkUri: String? = null) {
 
         AppNavigation(
             navController = navController,
-            isScrollbarEnabled = state.isScrollbarEnabled,
-            contentWidth = state.contentWidth,
         )
 
         val whatsNewViewModel: WhatsNewViewModel = koinViewModel()

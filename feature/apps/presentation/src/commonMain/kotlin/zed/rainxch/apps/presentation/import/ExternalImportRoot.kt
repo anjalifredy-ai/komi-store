@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenu
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -75,9 +75,7 @@ fun ExternalImportRoot(
             }
             ExternalImportEvent.PlayConfetti -> confettiTrigger++
             is ExternalImportEvent.ShowUndoSnackbar -> {
-                // Dismiss any prior snackbar so undo always wins the slot — the
-                // VM tracks one pending undo, and showing a stale message would
-                // let the user mis-target it.
+
                 snackbarHostState.currentSnackbarData?.dismiss()
                 scope.launch {
                     val undoLabel = getString(Res.string.external_import_undo_action)
@@ -109,8 +107,10 @@ fun ExternalImportRoot(
                     title = {
                         Text(
                             text = stringResource(Res.string.external_import_top_bar_title),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.SemiBold,
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground,
                         )
                     },
                     navigationIcon = {
@@ -131,12 +131,12 @@ fun ExternalImportRoot(
                                         contentDescription = stringResource(Res.string.external_import_overflow_more),
                                     )
                                 }
-                                DropdownMenu(
+                                GhsDropdownMenu(
                                     expanded = menuOpen,
                                     onDismissRequest = { menuOpen = false },
                                 ) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(Res.string.external_import_overflow_skip_remaining)) },
+                                    GhsDropdownMenuItem(
+                                        text = stringResource(Res.string.external_import_overflow_skip_remaining),
                                         onClick = {
                                             menuOpen = false
                                             viewModel.onAction(ExternalImportAction.OnSkipRemaining)
@@ -263,8 +263,6 @@ fun ExternalImportRoot(
                     }
                 }
 
-                // Confetti is gated on PlayConfetti events: each event bumps the trigger
-                // and remounts the overlay so its LaunchedEffect re-runs the burst.
                 if (state.phase == ImportPhase.Done && confettiTrigger > 0) {
                     androidx.compose.runtime.key(confettiTrigger) {
                         ConfettiOverlay(enabled = true)
@@ -274,3 +272,5 @@ fun ExternalImportRoot(
         }
     }
 }
+
+const val EXTERNAL_IMPORT_OPEN_LINK_SHEET_KEY = "external_import_open_link_sheet"

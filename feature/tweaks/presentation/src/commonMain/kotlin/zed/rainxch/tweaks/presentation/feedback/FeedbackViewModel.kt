@@ -17,8 +17,9 @@ import zed.rainxch.core.domain.getSystemLocaleTag
 import zed.rainxch.core.domain.model.InstallerType
 import zed.rainxch.core.domain.model.Platform
 import zed.rainxch.core.domain.repository.TweaksRepository
+import zed.rainxch.core.domain.repository.UserSessionRepository
+import zed.rainxch.core.domain.system.AppVersionInfo
 import zed.rainxch.core.domain.utils.BrowserHelper
-import zed.rainxch.profile.domain.repository.ProfileRepository
 import zed.rainxch.tweaks.presentation.feedback.model.DiagnosticsInfo
 import zed.rainxch.tweaks.presentation.feedback.model.FeedbackChannel
 import zed.rainxch.tweaks.presentation.feedback.util.FeedbackComposer
@@ -26,7 +27,8 @@ import zed.rainxch.tweaks.presentation.feedback.util.FeedbackComposer
 class FeedbackViewModel(
     private val browserHelper: BrowserHelper,
     private val tweaksRepository: TweaksRepository,
-    private val profileRepository: ProfileRepository,
+    private val userSessionRepository: UserSessionRepository,
+    private val appVersionInfo: AppVersionInfo,
 ) : ViewModel() {
     private val _state = MutableStateFlow(FeedbackState())
     val state = _state.asStateFlow()
@@ -83,9 +85,7 @@ class FeedbackViewModel(
                     _events.send(FeedbackEvent.OnSendError(error))
                 }
             }
-            // Hold the disabled state briefly so the user sees the
-            // buttons disable and can't double-tap; long enough to
-            // also let any synchronous onFailure invocation arrive.
+
             delay(250)
             _state.update { it.copy(isSending = false) }
             if (!failed) {
@@ -96,8 +96,7 @@ class FeedbackViewModel(
     }
 
     private fun resetForm() {
-        // Preserve already-collected diagnostics so we don't re-query
-        // repositories when the sheet reopens.
+
         _state.update { previous ->
             FeedbackState(diagnostics = previous.diagnostics)
         }
@@ -117,15 +116,26 @@ class FeedbackViewModel(
             } else {
                 null
             }
-        val user = profileRepository.getUser().firstOrNull()
+        val user = userSessionRepository.getUser().firstOrNull()
         val appLanguage = tweaksRepository.getAppLanguage().firstOrNull()
+        val palette = tweaksRepository.getThemeColor().firstOrNull()
+        val isDark = tweaksRepository.getIsDarkTheme().firstOrNull()
+        val amoled = tweaksRepository.getAmoledTheme().firstOrNull() ?: false
+        val themeMode = when {
+            isDark == null -> "System"
+            isDark && amoled -> "AMOLED"
+            isDark -> "Dark"
+            else -> "Light"
+        }
         return DiagnosticsInfo(
-            appVersion = profileRepository.getVersionName(),
+            appVersion = appVersionInfo.versionName,
             platform = platform.displayName(),
             osVersion = getOsVersion(),
             locale = appLanguage ?: getSystemLocaleTag(),
             installerType = installerString,
             githubUsername = user?.username,
+            themePalette = palette?.name ?: "Nord",
+            themeMode = themeMode,
         )
     }
 

@@ -1,5 +1,6 @@
 package zed.rainxch.core.presentation.components.whatsnew
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,14 +12,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.core.domain.model.WhatsNewEntry
+import zed.rainxch.core.presentation.theme.tokens.Radii
 import zed.rainxch.core.domain.model.WhatsNewSection
 import zed.rainxch.core.domain.model.WhatsNewSectionType
 import zed.rainxch.githubstore.core.presentation.res.Res
@@ -37,7 +38,6 @@ import zed.rainxch.githubstore.core.presentation.res.whats_new_section_heads_up
 import zed.rainxch.githubstore.core.presentation.res.whats_new_section_improved
 import zed.rainxch.githubstore.core.presentation.res.whats_new_section_new
 import zed.rainxch.githubstore.core.presentation.res.whats_new_sheet_heading
-import zed.rainxch.githubstore.core.presentation.res.whats_new_translations_note
 import zed.rainxch.githubstore.core.presentation.res.whats_new_version_label
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,24 +71,20 @@ fun WhatsNewSheet(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Button(
+                    GhsButton(
                         onClick = onDismiss,
+                        label = stringResource(Res.string.whats_new_cta_dismiss),
+                        variant = GhsButtonVariant.Primary,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary,
-                        ),
-                    ) {
-                        Text(text = stringResource(Res.string.whats_new_cta_dismiss))
-                    }
+                    )
 
                     if (showHistoryAction) {
-                        TextButton(
+                        GhsButton(
                             onClick = onViewHistory,
+                            label = stringResource(Res.string.whats_new_cta_history),
+                            variant = GhsButtonVariant.Text,
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(text = stringResource(Res.string.whats_new_cta_history))
-                        }
+                        )
                     }
                 }
             }
@@ -122,9 +118,10 @@ private fun SheetHeader(entry: WhatsNewEntry) {
 @Composable
 fun WhatsNewEntryCard(entry: WhatsNewEntry) {
     Surface(
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = Modifier.fillMaxWidth(),
+        shape = Radii.row,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -187,7 +184,7 @@ private fun SectionLabel(type: WhatsNewSectionType) {
     }
 
     Text(
-        text = label.uppercase(),
+        text = label,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         color = color,

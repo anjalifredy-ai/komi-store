@@ -1,12 +1,17 @@
 package zed.rainxch.details.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import zed.rainxch.core.domain.getPlatform
 import zed.rainxch.core.domain.model.Platform
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -29,8 +34,13 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import zed.rainxch.core.presentation.theme.shapes.WonkySquircleShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenu
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenuItem
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -42,7 +52,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -81,7 +90,11 @@ import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.core.domain.model.DiscoveryPlatform
 import zed.rainxch.core.domain.model.InstallSource
 import zed.rainxch.core.domain.model.ContentWidth
+import zed.rainxch.core.presentation.components.FloatingPill
 import zed.rainxch.core.presentation.components.ScrollbarContainer
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import zed.rainxch.core.presentation.locals.LocalContentWidth
 import zed.rainxch.core.presentation.locals.LocalScrollbarEnabled
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
@@ -90,7 +103,6 @@ import zed.rainxch.core.presentation.utils.arrowKeyScroll
 import zed.rainxch.core.presentation.utils.isPullToRefreshSupported
 import zed.rainxch.core.domain.model.RefreshError
 import zed.rainxch.details.presentation.components.ApkInspectSheet
-import zed.rainxch.details.presentation.components.LanguagePicker
 import zed.rainxch.details.presentation.components.sections.about
 import zed.rainxch.details.presentation.components.sections.author
 import zed.rainxch.details.presentation.components.sections.header
@@ -100,7 +112,6 @@ import zed.rainxch.details.presentation.components.sections.stats
 import zed.rainxch.details.presentation.components.sections.releaseChannel
 import zed.rainxch.details.presentation.components.sections.whatsNew
 import zed.rainxch.details.presentation.components.states.ErrorState
-import zed.rainxch.details.presentation.model.TranslationTarget
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.add_to_favourites
 import zed.rainxch.githubstore.core.presentation.res.cancel
@@ -145,6 +156,8 @@ fun DetailsRoot(
     onNavigateToDeveloperProfile: (username: String) -> Unit,
     onOpenRepositoryInApp: (repoId: Long) -> Unit,
     onNavigateToSearchByPlatform: (DiscoveryPlatform) -> Unit,
+    onNavigateToAbout: (repoId: Long, owner: String, repo: String, sourceHost: String?) -> Unit,
+    onNavigateToWhatsNew: (repoId: Long, owner: String, repo: String, sourceHost: String?) -> Unit,
     viewModel: DetailsViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -226,6 +239,26 @@ fun DetailsRoot(
         state = state,
         snackbarHostState = snackbarHostState,
         onAction = onAction,
+        onReadMoreAbout = state.repository?.let { repo ->
+            {
+                onNavigateToAbout(
+                    repo.id,
+                    repo.owner.login,
+                    repo.name,
+                    repo.sourceHost,
+                )
+            }
+        },
+        onReadMoreWhatsNew = state.repository?.let { repo ->
+            {
+                onNavigateToWhatsNew(
+                    repo.id,
+                    repo.owner.login,
+                    repo.name,
+                    repo.sourceHost,
+                )
+            }
+        },
     )
 
     state.downgradeWarning?.let { warning ->
@@ -233,9 +266,13 @@ fun DetailsRoot(
             onDismissRequest = {
                 viewModel.onAction(DetailsAction.OnDismissDowngradeWarning)
             },
+            shape = WonkySquircleShape.Dialog,
             title = {
                 Text(
                     text = stringResource(Res.string.downgrade_requires_uninstall),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
                 )
             },
             text = {
@@ -249,41 +286,41 @@ fun DetailsRoot(
                 )
             },
             confirmButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OnDismissDowngradeWarning)
                         viewModel.onAction(DetailsAction.UninstallApp)
                     },
-                ) {
-                    Text(
-                        text = stringResource(Res.string.uninstall_first),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                    label = stringResource(Res.string.uninstall_first),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
             dismissButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OnDismissDowngradeWarning)
                     },
-                ) {
-                    Text(
-                        text = stringResource(Res.string.cancel),
-                    )
-                }
+                    label = stringResource(Res.string.cancel),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
         )
     }
 
-    // Signing key changed warning dialog
     state.signingKeyWarning?.let { warning ->
         AlertDialog(
             onDismissRequest = {
                 viewModel.onAction(DetailsAction.OnDismissSigningKeyWarning)
             },
+            shape = WonkySquircleShape.Dialog,
             title = {
                 Text(
                     text = stringResource(Res.string.signing_key_changed_title),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
                 )
             },
             text = {
@@ -297,41 +334,41 @@ fun DetailsRoot(
                 )
             },
             confirmButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OnOverrideSigningKeyWarning)
                     },
-                ) {
-                    Text(
-                        text = stringResource(Res.string.install_anyway),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                    label = stringResource(Res.string.install_anyway),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
             dismissButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OnDismissSigningKeyWarning)
                     },
-                ) {
-                    Text(
-                        text = stringResource(Res.string.cancel),
-                    )
-                }
+                    label = stringResource(Res.string.cancel),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
         )
     }
 
-    // Uninstall confirmation dialog
     if (state.showUninstallConfirmation) {
         val appName = state.installedApp?.appName ?: ""
         AlertDialog(
             onDismissRequest = {
                 viewModel.onAction(DetailsAction.OnDismissUninstallConfirmation)
             },
+            shape = WonkySquircleShape.Dialog,
             title = {
                 Text(
                     text = stringResource(Res.string.confirm_uninstall_title),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
                 )
             },
             text = {
@@ -340,25 +377,24 @@ fun DetailsRoot(
                 )
             },
             confirmButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OnConfirmUninstall)
                     },
-                ) {
-                    Text(
-                        text = stringResource(Res.string.uninstall),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                    label = stringResource(Res.string.uninstall),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
             dismissButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OnDismissUninstallConfirmation)
                     },
-                ) {
-                    Text(text = stringResource(Res.string.cancel))
-                }
+                    label = stringResource(Res.string.cancel),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
         )
     }
@@ -369,8 +405,14 @@ fun DetailsRoot(
             onDismissRequest = {
                 viewModel.onAction(DetailsAction.OnDismissUnlinkConfirmation)
             },
+            shape = WonkySquircleShape.Dialog,
             title = {
-                Text(text = stringResource(Res.string.details_unlink_external_app_dialog_title))
+                Text(
+                    text = stringResource(Res.string.details_unlink_external_app_dialog_title),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                )
             },
             text = {
                 Text(
@@ -378,25 +420,24 @@ fun DetailsRoot(
                 )
             },
             confirmButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OnConfirmUnlinkExternalApp)
                     },
-                ) {
-                    Text(
-                        text = stringResource(Res.string.details_unlink_external_app_dialog_confirm),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
+                    label = stringResource(Res.string.details_unlink_external_app_dialog_confirm),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
             dismissButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OnDismissUnlinkConfirmation)
                     },
-                ) {
-                    Text(text = stringResource(Res.string.cancel))
-                }
+                    label = stringResource(Res.string.cancel),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
         )
     }
@@ -406,29 +447,37 @@ fun DetailsRoot(
             onDismissRequest = {
                 viewModel.onAction(DetailsAction.DismissExternalInstallerPrompt)
             },
+            shape = WonkySquircleShape.Dialog,
             title = {
-                Text(text = stringResource(Res.string.install_permission_unavailable))
+                Text(
+                    text = stringResource(Res.string.install_permission_unavailable),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                )
             },
             text = {
                 Text(text = stringResource(Res.string.install_permission_blocked_message))
             },
             confirmButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.OpenWithExternalInstaller)
                     },
-                ) {
-                    Text(text = stringResource(Res.string.open_with_external_installer))
-                }
+                    label = stringResource(Res.string.open_with_external_installer),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
             dismissButton = {
-                TextButton(
+                GhsButton(
                     onClick = {
                         viewModel.onAction(DetailsAction.DismissExternalInstallerPrompt)
                     },
-                ) {
-                    Text(text = stringResource(Res.string.dismiss))
-                }
+                    label = stringResource(Res.string.dismiss),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             },
         )
     }
@@ -448,6 +497,8 @@ fun DetailsScreen(
     state: DetailsState,
     onAction: (DetailsAction) -> Unit,
     snackbarHostState: SnackbarHostState,
+    onReadMoreAbout: (() -> Unit)? = null,
+    onReadMoreWhatsNew: (() -> Unit)? = null,
 ) {
     Scaffold(
         topBar = {
@@ -463,36 +514,6 @@ fun DetailsScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
-
-            LanguagePicker(
-                isVisible = state.isLanguagePickerVisible,
-                selectedLanguageCode =
-                    when (state.languagePickerTarget) {
-                        TranslationTarget.About -> state.aboutTranslation.targetLanguageCode
-                        TranslationTarget.WhatsNew -> state.whatsNewTranslation.targetLanguageCode
-                        null -> null
-                    },
-                deviceLanguageCode = state.deviceLanguageCode,
-                onLanguageSelected = { language ->
-                    when (state.languagePickerTarget) {
-                        TranslationTarget.About -> {
-                            onAction(DetailsAction.TranslateAbout(language.code))
-                        }
-
-                        TranslationTarget.WhatsNew -> {
-                            onAction(
-                                DetailsAction.TranslateWhatsNew(
-                                    language.code,
-                                ),
-                            )
-                        }
-
-                        null -> {}
-                    }
-                    onAction(DetailsAction.DismissLanguagePicker)
-                },
-                onDismiss = { onAction(DetailsAction.DismissLanguagePicker) },
-            )
 
             if (state.isLoading) {
                 Box(
@@ -513,7 +534,7 @@ fun DetailsScreen(
 
             val density = LocalDensity.current
             var containerHeightDp by remember { mutableStateOf(0.dp) }
-            val collapsedSectionHeight = containerHeightDp * 0.7f
+            val collapsedSectionHeight = containerHeightDp * 0.4f
             val listState = rememberLazyListState()
             val isScrollbarEnabled = LocalScrollbarEnabled.current
             val contentWidthDp = when (LocalContentWidth.current) {
@@ -523,13 +544,6 @@ fun DetailsScreen(
             }
             val pullEnabled = remember { isPullToRefreshSupported() }
 
-            // Gutter scroll forwarding is a desktop-only UX polish
-            // (mouse-wheel-in-side-margins → scrolls content column).
-            // On Android the outer scrollable fought the inner
-            // LazyColumn's own scroll handler — both pointing at the
-            // same `listState` doubled-up gesture handling and the
-            // touch scroll froze. Issue tracked under content-width
-            // PR follow-up. Keep enabled = isDesktop.
             val isDesktop = remember { getPlatform() != Platform.ANDROID }
             Box(
                 modifier = Modifier
@@ -537,23 +551,12 @@ fun DetailsScreen(
                     .scrollable(
                         state = listState,
                         orientation = Orientation.Vertical,
-                        // LazyColumn's internal scrollable uses
-                        // reverseDirection=true (vertical, default
-                        // layout direction). Matching that here makes
-                        // the wheel-direction sign convention agree
-                        // — otherwise wheel-up at the top jumps to
-                        // the bottom and vice versa, because parent
-                        // and child interpret the same pointer delta
-                        // with opposite signs.
+
                         reverseDirection = true,
                         enabled = isDesktop,
                     )
                     .onSizeChanged { size ->
-                        // Layout-phase write; cheaper than BoxWithConstraints
-                        // which subcomposes during the measure pass. Setting
-                        // a state var here recomposes only the consumers that
-                        // read it (the about/whatsNew sections), not the
-                        // entire Scaffold subtree.
+
                         val newHeight = with(density) { size.height.toDp() }
                         if (newHeight != containerHeightDp) containerHeightDp = newHeight
                     },
@@ -622,16 +625,7 @@ fun DetailsScreen(
                                 collapsedHeight = collapsedSectionHeight,
                                 measuredHeightPx = state.whatsNewMeasuredHeightPx,
                                 onMeasured = { onAction(DetailsAction.OnWhatsNewMeasured(it)) },
-                                translationState = state.whatsNewTranslation,
-                                onTranslateClick = {
-                                    onAction(DetailsAction.TranslateWhatsNew(state.deviceLanguageCode))
-                                },
-                                onLanguagePickerClick = {
-                                    onAction(DetailsAction.ShowLanguagePicker(TranslationTarget.WhatsNew))
-                                },
-                                onToggleTranslation = {
-                                    onAction(DetailsAction.ToggleWhatsNewTranslation)
-                                },
+                                onReadMore = onReadMoreWhatsNew,
                             )
                         }
 
@@ -644,16 +638,7 @@ fun DetailsScreen(
                                 collapsedHeight = collapsedSectionHeight,
                                 measuredHeightPx = state.aboutMeasuredHeightPx,
                                 onMeasured = { onAction(DetailsAction.OnAboutMeasured(it)) },
-                                translationState = state.aboutTranslation,
-                                onTranslateClick = {
-                                    onAction(DetailsAction.TranslateAbout(state.deviceLanguageCode))
-                                },
-                                onLanguagePickerClick = {
-                                    onAction(DetailsAction.ShowLanguagePicker(TranslationTarget.About))
-                                },
-                                onToggleTranslation = {
-                                    onAction(DetailsAction.ToggleAboutTranslation)
-                                },
+                                onReadMore = onReadMoreAbout,
                             )
                         }
                     } else {
@@ -666,16 +651,7 @@ fun DetailsScreen(
                                 collapsedHeight = collapsedSectionHeight,
                                 measuredHeightPx = state.aboutMeasuredHeightPx,
                                 onMeasured = { onAction(DetailsAction.OnAboutMeasured(it)) },
-                                translationState = state.aboutTranslation,
-                                onTranslateClick = {
-                                    onAction(DetailsAction.TranslateAbout(state.deviceLanguageCode))
-                                },
-                                onLanguagePickerClick = {
-                                    onAction(DetailsAction.ShowLanguagePicker(TranslationTarget.About))
-                                },
-                                onToggleTranslation = {
-                                    onAction(DetailsAction.ToggleAboutTranslation)
-                                },
+                                onReadMore = onReadMoreAbout,
                             )
                         }
 
@@ -687,16 +663,7 @@ fun DetailsScreen(
                                 collapsedHeight = collapsedSectionHeight,
                                 measuredHeightPx = state.whatsNewMeasuredHeightPx,
                                 onMeasured = { onAction(DetailsAction.OnWhatsNewMeasured(it)) },
-                                translationState = state.whatsNewTranslation,
-                                onTranslateClick = {
-                                    onAction(DetailsAction.TranslateWhatsNew(state.deviceLanguageCode))
-                                },
-                                onLanguagePickerClick = {
-                                    onAction(DetailsAction.ShowLanguagePicker(TranslationTarget.WhatsNew))
-                                },
-                                onToggleTranslation = {
-                                    onAction(DetailsAction.ToggleWhatsNewTranslation)
-                                },
+                                onReadMore = onReadMoreWhatsNew,
                             )
                         }
                     }
@@ -751,155 +718,60 @@ private fun DetailsTopbar(
     state: DetailsState,
     onAction: (DetailsAction) -> Unit,
 ) {
-    TopAppBar(
-        title = { },
-        navigationIcon = {
-            IconButton(
-                shapes = IconButtonDefaults.shapes(),
-                onClick = {
-                    onAction(DetailsAction.OnNavigateBackClick)
-                },
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(Res.string.navigate_back),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        },
-        actions = {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        FloatingPill(
+            onClick = { onAction(DetailsAction.OnNavigateBackClick) },
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(Res.string.navigate_back),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        if (state.repository != null) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (state.repository != null) {
-                    IconButton(
-                        onClick = {
-                            onAction(
-                                DetailsAction.OnMessage(
-                                    messageText =
-                                        if (state.isStarred) {
-                                            Res.string.unstar_from_github
-                                        } else {
-                                            Res.string.star_from_github
-                                        },
-                                ),
-                            )
-                        },
-                        shapes = IconButtonDefaults.shapes(),
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                            ),
-                    ) {
-                        Icon(
-                            imageVector =
-                                if (state.isStarred) {
-                                    Icons.Default.Star
-                                } else {
-                                    Icons.Default.StarBorder
-                                },
-                            contentDescription =
-                                stringResource(
-                                    resource =
-                                        if (state.isStarred) {
-                                            Res.string.repository_starred
-                                        } else {
-                                            Res.string.repository_not_starred
-                                        },
-                                ),
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            onAction(DetailsAction.OnToggleFavorite)
-                        },
-                        shapes = IconButtonDefaults.shapes(),
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                            ),
-                    ) {
-                        Icon(
-                            imageVector =
-                                if (state.isFavourite) {
-                                    Icons.Default.Favorite
-                                } else {
-                                    Icons.Default.FavoriteBorder
-                                },
-                            contentDescription =
-                                stringResource(
-                                    resource =
-                                        if (state.isFavourite) {
-                                            Res.string.remove_from_favourites
-                                        } else {
-                                            Res.string.add_to_favourites
-                                        },
-                                ),
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            onAction(DetailsAction.OnShareClick)
-                        },
-                        shapes = IconButtonDefaults.shapes(),
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                            ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = stringResource(Res.string.share_repository),
-                        )
-                    }
-                }
-
-                state.repository?.htmlUrl?.let {
-                    IconButton(
-                        shapes = IconButtonDefaults.shapes(),
-                        onClick = {
-                            onAction(DetailsAction.OpenRepoInBrowser)
-                        },
-                        colors =
-                            IconButtonDefaults.iconButtonColors(
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                            ),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.OpenInBrowser,
-                            contentDescription = stringResource(Res.string.open_repository),
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-                }
-
-                if (state.repository != null) {
-                    DetailsOverflowMenu(state = state, onAction = onAction)
-                }
-            }
-        },
-        colors =
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-            ),
-        modifier =
-            Modifier
-                .shadow(
-                    elevation = 6.dp,
-                    ambientColor = MaterialTheme.colorScheme.surfaceTint,
-                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                ).background(
-                    Brush.linearGradient(
-                        0f to MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        0.5f to MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                        1f to MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = RoundedCornerShape(50),
                     ),
-                ).background(MaterialTheme.colorScheme.surfaceContainerHighest),
-    )
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .clickable { onAction(DetailsAction.OpenRepoInBrowser) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.OpenInBrowser,
+                        contentDescription = stringResource(Res.string.open_repository),
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .size(1.dp, 20.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                )
+                DetailsOverflowMenu(state = state, onAction = onAction)
+            }
+        }
+    }
 }
+
 
 @OptIn(
     ExperimentalTime::class,
@@ -931,39 +803,98 @@ private fun DetailsOverflowMenu(
     val refreshDisabled = cooldownActive || state.isRefreshing
 
     Box {
-        IconButton(
-            shapes = IconButtonDefaults.shapes(),
-            onClick = { menuOpen = true },
-            colors =
-                IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface,
-                ),
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .clickable { menuOpen = true }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
                 contentDescription = stringResource(Res.string.details_refresh_more_options),
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(18.dp),
             )
         }
-        DropdownMenu(
+        GhsDropdownMenu(
             expanded = menuOpen,
             onDismissRequest = { menuOpen = false },
         ) {
-            DropdownMenuItem(
-                enabled = !refreshDisabled,
-                text = {
-                    Text(
-                        text =
-                            if (cooldownActive) {
-                                stringResource(Res.string.details_refresh_cooldown, cooldownSeconds)
-                            } else {
-                                stringResource(Res.string.details_refresh)
-                            },
+            GhsDropdownMenuItem(
+                text = stringResource(
+                    if (state.isStarred) Res.string.repository_starred
+                    else Res.string.repository_not_starred,
+                ),
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (state.isStarred) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
                     )
+                },
+                onClick = {
+                    menuOpen = false
+                    onAction(
+                        DetailsAction.OnMessage(
+                            messageText = if (state.isStarred) {
+                                Res.string.unstar_from_github
+                            } else {
+                                Res.string.star_from_github
+                            },
+                        ),
+                    )
+                },
+            )
+            GhsDropdownMenuItem(
+                text = stringResource(
+                    if (state.isFavourite) Res.string.remove_from_favourites
+                    else Res.string.add_to_favourites,
+                ),
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (state.isFavourite) {
+                            Icons.Default.Favorite
+                        } else {
+                            Icons.Default.FavoriteBorder
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                    )
+                },
+                onClick = {
+                    menuOpen = false
+                    onAction(DetailsAction.OnToggleFavorite)
+                },
+            )
+            state.repository?.htmlUrl?.let {
+                GhsDropdownMenuItem(
+                    text = stringResource(Res.string.share_repository),
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onAction(DetailsAction.OnShareClick)
+                    },
+                )
+            }
+            GhsDropdownMenuItem(
+                enabled = !refreshDisabled,
+                text = if (cooldownActive) {
+                    stringResource(Res.string.details_refresh_cooldown, cooldownSeconds)
+                } else {
+                    stringResource(Res.string.details_refresh)
                 },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = null,
+                        modifier = Modifier.size(18.dp),
                     )
                 },
                 onClick = {
@@ -972,14 +903,13 @@ private fun DetailsOverflowMenu(
                 },
             )
             if (state.installedApp?.installSource == InstallSource.MANUAL) {
-                DropdownMenuItem(
-                    text = {
-                        Text(text = stringResource(Res.string.details_unlink_external_app_menu))
-                    },
+                GhsDropdownMenuItem(
+                    text = stringResource(Res.string.details_unlink_external_app_menu),
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.LinkOff,
                             contentDescription = null,
+                            modifier = Modifier.size(18.dp),
                         )
                     },
                     onClick = {

@@ -10,10 +10,11 @@ data class MainState(
     val rateLimitInfo: RateLimitInfo? = null,
     val showRateLimitDialog: Boolean = false,
     val showSessionExpiredDialog: Boolean = false,
-    val currentColorTheme: AppTheme = AppTheme.OCEAN,
+    val currentColorTheme: AppTheme = AppTheme.NORD,
     val isAmoledTheme: Boolean = false,
     val isDarkTheme: Boolean? = null,
     val currentFontTheme: FontTheme = FontTheme.CUSTOM,
     val isScrollbarEnabled: Boolean = false,
     val contentWidth: ContentWidth = ContentWidth.COMPACT,
+    val onboardingComplete: Boolean? = null,
 )

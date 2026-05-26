@@ -30,7 +30,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -43,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import org.jetbrains.compose.resources.stringResource
+import zed.rainxch.core.presentation.theme.shapes.WonkySquircleShape
+import zed.rainxch.core.presentation.theme.tokens.Radii
 import zed.rainxch.details.presentation.DetailsAction
 import zed.rainxch.details.presentation.DetailsState
 import zed.rainxch.githubstore.core.presentation.res.Res
@@ -57,20 +61,6 @@ import zed.rainxch.githubstore.core.presentation.res.stalled_project_warning_day
 import zed.rainxch.githubstore.core.presentation.res.stalled_project_warning_description
 import zed.rainxch.githubstore.core.presentation.res.stalled_project_warning_months
 
-/**
- * Release-channel UX bundle for the Details screen
- * (GitHub-Store release UX #2, #3, #4, #6):
- *  - Inline chip to toggle per-app pre-release channel.
- *  - "Switch to stable vX.Y.Z" chip when user is on a pre-release
- *    and a stable is available.
- *  - Stalled-project warning card when the latest stable is old
- *    but pre-releases are still flowing.
- *  - Merged "What's changed since v…" card that concatenates
- *    release notes across every version the user has skipped.
- *
- * All four are additive — nothing renders when the app isn't
- * tracked or when the corresponding signal is absent.
- */
 fun LazyListScope.releaseChannel(
     state: DetailsState,
     onAction: (DetailsAction) -> Unit,
@@ -107,9 +97,7 @@ fun LazyListScope.releaseChannel(
                             ChannelChip(
                                 label = channelLabel,
                                 icon = Icons.Default.Science,
-                                // Visually signal the "hot" channel when the user
-                                // has opted into betas; keep it muted when they're
-                                // on the default stable-only track.
+
                                 tint =
                                     if (includeBetas) {
                                         MaterialTheme.colorScheme.tertiary
@@ -117,12 +105,7 @@ fun LazyListScope.releaseChannel(
                                         MaterialTheme.colorScheme.onSurfaceVariant
                                     },
                                 onClick = { onAction(DetailsAction.ToggleIncludeBetas) },
-                                // Mirror the visible label so screen readers hear
-                                // the current channel ("Include betas" / "Stable
-                                // only") instead of the previous static
-                                // "Toggle beta releases for this app" string,
-                                // which gave no indication of which side the
-                                // toggle is currently on.
+
                                 contentDescriptionText = channelLabel,
                             )
                             if (state.isChannelChipCoachmarkPending) {
@@ -166,15 +149,15 @@ fun LazyListScope.releaseChannel(
                 Card(
                     colors =
                         CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f),
                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                         ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = Radii.row,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
                         verticalAlignment = Alignment.Top,
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Default.WarningAmber,
@@ -208,10 +191,10 @@ fun LazyListScope.releaseChannel(
                             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                             contentColor = MaterialTheme.colorScheme.onSurface,
                         ),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = Radii.row,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Bolt,
@@ -311,14 +294,14 @@ private fun ChannelChipCoachmark(onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
     ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = WonkySquircleShape.Toast,
             color = MaterialTheme.colorScheme.primary,
             shadowElevation = 6.dp,
             modifier = Modifier.width(280.dp),
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -346,13 +329,13 @@ private fun ChannelChipCoachmark(onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     horizontalArrangement = Arrangement.End,
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text(
-                            text = stringResource(Res.string.channel_chip_coachmark_dismiss),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
+                    GhsButton(
+                        onClick = onDismiss,
+                        label = stringResource(Res.string.channel_chip_coachmark_dismiss),
+                        variant = GhsButtonVariant.Text,
+                        size = GhsButtonSize.Sm,
+                        contentColorOverride = MaterialTheme.colorScheme.onPrimary,
+                    )
                 }
             }
         }

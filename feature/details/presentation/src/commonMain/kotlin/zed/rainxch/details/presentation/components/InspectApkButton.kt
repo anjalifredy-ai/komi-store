@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import zed.rainxch.core.presentation.theme.shapes.WonkySquircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -29,7 +30,9 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -37,8 +40,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import org.jetbrains.compose.resources.stringResource
@@ -48,15 +53,6 @@ import zed.rainxch.githubstore.core.presentation.res.apk_inspect_coachmark_body
 import zed.rainxch.githubstore.core.presentation.res.apk_inspect_coachmark_dismiss
 import zed.rainxch.githubstore.core.presentation.res.apk_inspect_coachmark_title
 
-/**
- * Discoverable entry point for the APK Inspect sheet.
- *
- * Renders a 52dp circular icon button next to the install button. When
- * [showCoachmark] is true, the button does a slow pulse + tilt and a
- * tooltip-style coachmark renders above the icon, anchored with an
- * arrow. The coachmark is one-shot per user — tapping it (or the
- * button) dismisses and persists via [onCoachmarkDismiss].
- */
 @Composable
 fun InspectApkButton(
     showCoachmark: Boolean,
@@ -122,7 +118,7 @@ private fun rememberTilt(active: Boolean) =
 private fun Coachmark(onDismiss: () -> Unit) {
     Popup(
         alignment = Alignment.TopEnd,
-        // Render above the button. Negative Y offset moves the popup up.
+
         offset = androidx.compose.ui.unit.IntOffset(x = 0, y = -260),
         properties = PopupProperties(
             focusable = false,
@@ -133,14 +129,14 @@ private fun Coachmark(onDismiss: () -> Unit) {
     ) {
         Column(horizontalAlignment = Alignment.End) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = WonkySquircleShape.Toast,
                 color = MaterialTheme.colorScheme.primary,
                 shadowElevation = 6.dp,
                 modifier = Modifier.width(260.dp),
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -154,9 +150,11 @@ private fun Coachmark(onDismiss: () -> Unit) {
                         )
                         Text(
                             text = stringResource(Res.string.apk_inspect_coachmark_title),
-                            style = MaterialTheme.typography.titleSmall,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp,
+                            ),
                             color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Bold,
                         )
                     }
                     Text(
@@ -165,20 +163,20 @@ private fun Coachmark(onDismiss: () -> Unit) {
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
                     )
                     Row(
-                        modifier = Modifier.padding(top = 4.dp).fillMaxWidthOnly(),
+                        modifier = Modifier.padding(top = 2.dp).fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
                     ) {
-                        TextButton(onClick = onDismiss) {
-                            Text(
-                                text = stringResource(Res.string.apk_inspect_coachmark_dismiss),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
+                        GhsButton(
+                            onClick = onDismiss,
+                            label = stringResource(Res.string.apk_inspect_coachmark_dismiss),
+                            variant = GhsButtonVariant.Text,
+                            size = GhsButtonSize.Sm,
+                            contentColorOverride = MaterialTheme.colorScheme.onPrimary,
+                        )
                     }
                 }
             }
-            // Triangle arrow pointing down at the icon button.
+
             Box(
                 modifier = Modifier
                     .padding(end = 24.dp)
@@ -188,8 +186,6 @@ private fun Coachmark(onDismiss: () -> Unit) {
         }
     }
 }
-
-private fun Modifier.fillMaxWidthOnly(): Modifier = this.fillMaxWidth()
 
 private fun Modifier.arrowDown(color: androidx.compose.ui.graphics.Color): Modifier =
     this.fillMaxSize().background(

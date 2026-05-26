@@ -43,6 +43,7 @@ class ProxyRepositoryImpl(
     init {
         migrationScope.launch {
             runCatching { migrateIfNeeded() }
+            runCatching { migrateMasterV2IfNeeded() }
             migrationDeferred.complete(Unit)
         }
     }
@@ -69,6 +70,21 @@ class ProxyRepositoryImpl(
             password = "${prefix}_proxy_password",
         )
     }
+
+    private object MasterKeys {
+        const val TYPE = "master_proxy_type"
+        const val HOST = "master_proxy_host"
+        const val PORT = "master_proxy_port"
+        const val USERNAME = "master_proxy_username"
+        const val PASSWORD = "master_proxy_password"
+    }
+
+    private fun useMasterKeyFor(scope: ProxyScope): String =
+        when (scope) {
+            ProxyScope.DISCOVERY -> "discovery_proxy_use_master"
+            ProxyScope.DOWNLOAD -> "download_proxy_use_master"
+            ProxyScope.TRANSLATION -> "translation_proxy_use_master"
+        }
 
     override fun getProxyConfig(scope: ProxyScope): Flow<ProxyConfig> = flow {
         migrationDeferred.await()
@@ -155,6 +171,61 @@ class ProxyRepositoryImpl(
         if (value != null) ksafe.safePut(key, value) else ksafe.safeDelete(key)
     }
 
+    override fun getMasterProxyConfig(): Flow<ProxyConfig?> = flow {
+        migrationDeferred.await()
+        emitAll(
+            combine(
+                ksafe.safeGetFlow<String?>(MasterKeys.TYPE, null),
+                ksafe.safeGetFlow<String?>(MasterKeys.HOST, null),
+                ksafe.safeGetFlow<Int?>(MasterKeys.PORT, null),
+                ksafe.safeGetFlow<String?>(MasterKeys.USERNAME, null),
+                ksafe.safeGetFlow<String?>(MasterKeys.PASSWORD, null),
+            ) { type, host, port, user, pass ->
+                if (type == null) null else parseConfig(type, host, port, user, pass)
+            },
+        )
+    }
+
+    override suspend fun setMasterProxyConfig(config: ProxyConfig) {
+        migrationDeferred.await()
+        when (config) {
+            is ProxyConfig.None -> {
+                ksafe.safePut(MasterKeys.TYPE, "none")
+                ksafe.safeDelete(MasterKeys.HOST); ksafe.safeDelete(MasterKeys.PORT)
+                ksafe.safeDelete(MasterKeys.USERNAME); ksafe.safeDelete(MasterKeys.PASSWORD)
+            }
+            is ProxyConfig.System -> {
+                ksafe.safePut(MasterKeys.TYPE, "system")
+                ksafe.safeDelete(MasterKeys.HOST); ksafe.safeDelete(MasterKeys.PORT)
+                ksafe.safeDelete(MasterKeys.USERNAME); ksafe.safeDelete(MasterKeys.PASSWORD)
+            }
+            is ProxyConfig.Http -> {
+                ksafe.safePut(MasterKeys.TYPE, "http")
+                ksafe.safePut(MasterKeys.HOST, config.host)
+                ksafe.safePut(MasterKeys.PORT, config.port)
+                writeOrClear(MasterKeys.USERNAME, config.username)
+                writeOrClear(MasterKeys.PASSWORD, config.password)
+            }
+            is ProxyConfig.Socks -> {
+                ksafe.safePut(MasterKeys.TYPE, "socks")
+                ksafe.safePut(MasterKeys.HOST, config.host)
+                ksafe.safePut(MasterKeys.PORT, config.port)
+                writeOrClear(MasterKeys.USERNAME, config.username)
+                writeOrClear(MasterKeys.PASSWORD, config.password)
+            }
+        }
+    }
+
+    override fun getUseMaster(scope: ProxyScope): Flow<Boolean> = flow {
+        migrationDeferred.await()
+        emitAll(ksafe.safeGetFlow(useMasterKeyFor(scope), false))
+    }
+
+    override suspend fun setUseMaster(scope: ProxyScope, useMaster: Boolean) {
+        migrationDeferred.await()
+        ksafe.safePut(useMasterKeyFor(scope), useMaster)
+    }
+
     private suspend fun migrateIfNeeded() {
         if (migrated) return
         migrationLock.withLock {
@@ -166,7 +237,7 @@ class ProxyRepositoryImpl(
             }
             val snapshot = runCatching { legacyDataStore.data.first() }.getOrNull()
             if (snapshot == null) {
-                // Don't mark complete — retry on next launch.
+
                 return
             }
 
@@ -193,7 +264,6 @@ class ProxyRepositoryImpl(
                 val user = snapshot[userLegacyKey] ?: snapshot[stringPreferencesKey("proxy_username")]
                 val pass = snapshot[passLegacyKey] ?: snapshot[stringPreferencesKey("proxy_password")]
 
-                // Per-field tracking — only enqueue legacy delete if KSafe write succeeded.
                 val typeOk = ksafe.safePut(keys.type, type)
                 if (!typeOk) { anyFailure = true; return@forEach }
                 scopeType?.let { keysToClear += typeLegacyKey }
@@ -216,9 +286,6 @@ class ProxyRepositoryImpl(
                 }
             }
 
-            // Drop the unscoped legacy keys only if we actually transferred them
-            // into at least one scope above. We don't know which scope owns them,
-            // but their fallback role is exhausted once any scope is populated.
             val anyScopeTouched = keysToClear.isNotEmpty()
             if (anyScopeTouched) {
                 keysToClear += stringPreferencesKey("proxy_type")
@@ -244,7 +311,48 @@ class ProxyRepositoryImpl(
         }
     }
 
+    private suspend fun migrateMasterV2IfNeeded() {
+        val alreadyDone = runCatching {
+            ksafe.safeGet(MIGRATION_MARKER_MASTER_V2, false)
+        }.getOrDefault(false)
+        if (alreadyDone) return
+
+        val configs = ProxyScope.entries.map { scope ->
+            scope to readScopeConfigDirect(scope)
+        }
+
+        // Plurality vote: most common scope config becomes the master.
+        // Tie-break: Download > Discovery > Translation (most-common scope usage order).
+        val tieBreakOrder = listOf(ProxyScope.DOWNLOAD, ProxyScope.DISCOVERY, ProxyScope.TRANSLATION)
+        val counts = configs.groupBy { it.second }.mapValues { it.value.size }
+        val maxCount = counts.values.maxOrNull() ?: 0
+        val winners = counts.filter { it.value == maxCount }.keys
+        val winnerConfig = tieBreakOrder.firstNotNullOfOrNull { scope ->
+            configs.firstOrNull { it.first == scope && it.second in winners }?.second
+        } ?: configs.first().second
+
+        runCatching { setMasterProxyConfig(winnerConfig) }
+
+        configs.forEach { (scope, config) ->
+            val matches = config == winnerConfig
+            runCatching { setUseMaster(scope, matches) }
+        }
+
+        runCatching { ksafe.safePut(MIGRATION_MARKER_MASTER_V2, true) }
+    }
+
+    private suspend fun readScopeConfigDirect(scope: ProxyScope): ProxyConfig {
+        val keys = keysFor(scope)
+        val type = runCatching { ksafe.safeGet<String?>(keys.type, null) }.getOrNull()
+        val host = runCatching { ksafe.safeGet<String?>(keys.host, null) }.getOrNull()
+        val port = runCatching { ksafe.safeGet<Int?>(keys.port, null) }.getOrNull()
+        val user = runCatching { ksafe.safeGet<String?>(keys.username, null) }.getOrNull()
+        val pass = runCatching { ksafe.safeGet<String?>(keys.password, null) }.getOrNull()
+        return parseConfig(type, host, port, user, pass)
+    }
+
     private companion object {
         const val MIGRATION_MARKER = "__migrated_proxy_v1__"
+        const val MIGRATION_MARKER_MASTER_V2 = "__migrated_proxy_master_v2__"
     }
 }

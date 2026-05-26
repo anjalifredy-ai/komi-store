@@ -8,12 +8,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import zed.rainxch.core.domain.model.MirrorPreference
 import zed.rainxch.core.domain.model.ProxyConfig
 import zed.rainxch.core.domain.model.ProxyScope
 import zed.rainxch.core.domain.model.TrafficKind
 import zed.rainxch.core.domain.repository.MirrorRepository
+import zed.rainxch.core.domain.repository.ProxyRepository
 
 data class MirrorActive(
     val template: String,
@@ -27,7 +31,27 @@ object ProxyManager {
     private val mirror = AtomicReference<MirrorActive?>(null)
     private var mirrorCollectorJob: Job? = null
 
+    private val seedMutex = Mutex()
+    @Volatile private var seedJob: Job? = null
+
     fun configFlow(scope: ProxyScope): StateFlow<ProxyConfig> = flows.getValue(scope).asStateFlow()
+
+    fun bootstrap(repository: ProxyRepository, appScope: CoroutineScope) {
+        if (seedJob != null) return
+        appScope.launch {
+            seedMutex.withLock {
+                if (seedJob != null) return@withLock
+                seedJob = launch {
+                    ProxyScope.entries.forEach { scope ->
+                        runCatching {
+                            val cfg = repository.getProxyConfig(scope).first()
+                            flows.getValue(scope).value = cfg
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     fun currentConfig(scope: ProxyScope): ProxyConfig = flows.getValue(scope).value
 
@@ -38,18 +62,8 @@ object ProxyManager {
         flows.getValue(scope).value = config
     }
 
-    /**
-     * Resolved active mirror — template plus the traffic kinds it can serve.
-     * Read on every outbound GitHub request; must be hot-path safe (atomic, no I/O).
-     * Null when preference is Direct or the catalog has no template for the
-     * selected mirror.
-     */
     fun currentMirror(): MirrorActive? = mirror.get()
 
-    /**
-     * Convenience accessor for callers that only need the template string and
-     * don't gate by traffic kind. Prefer [currentMirror] for new code.
-     */
     fun currentMirrorTemplate(): String? = mirror.get()?.template
 
     fun startMirrorCollector(

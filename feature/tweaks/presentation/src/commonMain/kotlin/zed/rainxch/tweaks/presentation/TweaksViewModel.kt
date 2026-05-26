@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,12 +26,13 @@ import zed.rainxch.core.domain.model.TranslationProvider
 import zed.rainxch.core.domain.network.ProxyTestOutcome
 import zed.rainxch.core.domain.logging.GitHubStoreLogger
 import zed.rainxch.core.domain.network.ProxyTester
-import zed.rainxch.core.domain.repository.DeviceIdentityRepository
+import zed.rainxch.core.domain.repository.CacheRepository
 import zed.rainxch.core.domain.repository.ProxyRepository
 import zed.rainxch.core.domain.repository.SeenReposRepository
-import zed.rainxch.core.domain.repository.TelemetryRepository
 import zed.rainxch.core.domain.repository.TweaksRepository
+import zed.rainxch.core.domain.repository.UserSessionRepository
 import zed.rainxch.core.domain.system.AggressiveOemDetector
+import zed.rainxch.core.domain.system.AppVersionInfo
 import zed.rainxch.core.domain.system.InstallerStatusProvider
 import zed.rainxch.core.domain.system.UpdateScheduleManager
 import zed.rainxch.tweaks.presentation.model.ProxyScopeFormState
@@ -45,41 +47,31 @@ import zed.rainxch.githubstore.core.presentation.res.proxy_test_error_status
 import zed.rainxch.githubstore.core.presentation.res.proxy_test_error_timeout
 import zed.rainxch.githubstore.core.presentation.res.proxy_test_error_unknown
 import zed.rainxch.githubstore.core.presentation.res.proxy_test_error_unreachable
-import zed.rainxch.profile.domain.repository.ProfileRepository
 import zed.rainxch.tweaks.presentation.model.ProxyType
 
 class TweaksViewModel(
     private val tweaksRepository: TweaksRepository,
-    private val profileRepository: ProfileRepository,
+    private val appVersionInfo: AppVersionInfo,
     private val installerStatusProvider: InstallerStatusProvider,
     private val proxyRepository: ProxyRepository,
     private val proxyTester: ProxyTester,
     private val updateScheduleManager: UpdateScheduleManager,
     private val seenReposRepository: SeenReposRepository,
-    private val deviceIdentityRepository: DeviceIdentityRepository,
-    private val telemetryRepository: TelemetryRepository,
     private val logger: GitHubStoreLogger,
     private val aggressiveOemDetector: AggressiveOemDetector,
+    private val cacheRepository: CacheRepository,
 ) : ViewModel() {
     private companion object {
         private const val BATTERY_OPT_PREF_READ_TIMEOUT_MS: Long = 1_000
 
-        // IPv4 dotted-quad, each octet 0..255.
         private val IPV4_PATTERN =
             Regex(
                 "^(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)" +
                     "(\\.(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)){3}$",
             )
 
-        // IPv6 literal — character-level only (hex groups + colons,
-        // optional `::` shortcut). Permissive on canonical form because
-        // proxy clients normalize it; we only need to reject "looks
-        // wrong" inputs like `not a url`.
         private val IPV6_PATTERN = Regex("^[0-9A-Fa-f:]+$")
 
-        // RFC 1123 hostname: labels of 1..63 alphanumeric / hyphen,
-        // must start and end with alphanumeric, separated by dots.
-        // Total length capped at 253 by the caller.
         private val HOSTNAME_PATTERN =
             Regex(
                 "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)" +
@@ -106,7 +98,6 @@ class TweaksViewModel(
                     loadHideSeenEnabled()
                     loadScrollbarEnabled()
                     loadContentWidth()
-                    loadTelemetryEnabled()
                     loadTranslationSettings()
                     loadAppLanguage()
                     loadAutoTranslate()
@@ -115,14 +106,15 @@ class TweaksViewModel(
                     observeDhizukuStatus()
                     observeRootStatus()
                     observeInstallerAttribution()
+                    observeNeedsRestartReasons()
+                    observeMasterProxyConfig()
+                    observeUseMasterFlags()
+                    observeDiscoveryPlatforms()
 
                     hasLoadedInitialData = true
                 }
                 refreshCacheSize()
-                // Re-evaluate on every Tweaks (re-)entry: the user may
-                // have whitelisted the app from system Settings since
-                // the last evaluation, in which case the card should
-                // disappear without requiring an explicit dismiss.
+
                 evaluateBatteryOptimizationCard()
             }.stateIn(
                 scope = viewModelScope,
@@ -137,7 +129,7 @@ class TweaksViewModel(
         if (cacheSizeJob?.isActive == true) return
         cacheSizeJob =
             viewModelScope.launch {
-                profileRepository.observeCacheSize().collect { sizeBytes ->
+                cacheRepository.observeCacheSize().collect { sizeBytes ->
                     _state.update {
                         it.copy(cacheSize = formatCacheSize(sizeBytes))
                     }
@@ -162,13 +154,7 @@ class TweaksViewModel(
     }
 
     private fun loadVersionName() {
-        viewModelScope.launch {
-            _state.update {
-                it.copy(
-                    versionName = profileRepository.getVersionName(),
-                )
-            }
-        }
+        _state.update { it.copy(versionName = appVersionInfo.versionName) }
     }
 
     private fun loadCurrentTheme() {
@@ -220,17 +206,7 @@ class TweaksViewModel(
     }
 
     private fun loadProxyConfig() {
-        // Start one collector per scope. Each updates its slot in the
-        // [TweaksState.proxyForms] map — scopes are independent so the
-        // flows intentionally don't share state.
-        //
-        // If the user has an in-progress edit on a scope (isDraftDirty)
-        // we skip hydration for that scope until they commit (save) or
-        // reset (switch type via OnProxyTypeSelected for None/System).
-        // DataStore emits on *any* preference change — without this
-        // guard, toggling any unrelated setting while the user is mid-
-        // typing in the host field would snap the form back to persisted
-        // values.
+
         ProxyScope.entries.forEach { scope ->
             viewModelScope.launch {
                 proxyRepository.getProxyConfig(scope).collect { config ->
@@ -274,8 +250,6 @@ class TweaksViewModel(
         }
     }
 
-    /** User-triggered form edit — marks the scope dirty so the
-     *  preferences flow won't clobber the edit on an unrelated emit. */
     private fun mutateForm(
         scope: ProxyScope,
         block: (ProxyScopeFormState) -> ProxyScopeFormState,
@@ -288,11 +262,6 @@ class TweaksViewModel(
         }
     }
 
-    /** Transient UI-state mutation (password visibility, test-in-
-     *  progress) — does *not* mark the scope dirty, so toggling the eye
-     *  icon or running a test doesn't block preference hydration. Only
-     *  use for flags that don't represent a real config change the user
-     *  expects to save. */
     private fun mutateFormUi(
         scope: ProxyScope,
         block: (ProxyScopeFormState) -> ProxyScopeFormState,
@@ -304,9 +273,6 @@ class TweaksViewModel(
         }
     }
 
-    /** Clears the dirty flag — call after a successful save or an
-     *  explicit reset so the next preferences emission can re-hydrate
-     *  the form. */
     private fun clearDirty(scope: ProxyScope) {
         _state.update { state ->
             val form = state.formFor(scope)
@@ -462,16 +428,6 @@ class TweaksViewModel(
         }
     }
 
-    private fun loadTelemetryEnabled() {
-        viewModelScope.launch {
-            tweaksRepository.getTelemetryEnabled().collect { enabled ->
-                _state.update {
-                    it.copy(isTelemetryEnabled = enabled)
-                }
-            }
-        }
-    }
-
     private fun loadTranslationSettings() {
         viewModelScope.launch {
             tweaksRepository.getTranslationProvider().collect { provider ->
@@ -619,10 +575,7 @@ class TweaksViewModel(
 
             is TweaksAction.OnProxyTypeSelected -> {
                 mutateForm(action.scope) { it.copy(type = action.type) }
-                // NONE / SYSTEM have no form fields — persist immediately
-                // since there's nothing left for the user to fill in. For
-                // HTTP / SOCKS, wait for an explicit Save so validation
-                // can run against a completed form.
+
                 if (action.type == ProxyType.NONE || action.type == ProxyType.SYSTEM) {
                     val config =
                         if (action.type == ProxyType.NONE) {
@@ -634,8 +587,7 @@ class TweaksViewModel(
                         runCatching {
                             proxyRepository.setProxyConfig(action.scope, config)
                         }.onSuccess {
-                            // Committed — allow preferences-flow hydration
-                            // to resume for this scope.
+
                             clearDirty(action.scope)
                             _events.send(TweaksEvent.OnProxySaved)
                         }.onFailure { error ->
@@ -673,11 +625,7 @@ class TweaksViewModel(
 
             is TweaksAction.OnProxySave -> {
                 val form = _state.value.formFor(action.scope)
-                // Only HTTP/SOCKS need host+port — validate for those
-                // only. NONE/SYSTEM carry no form fields and would
-                // otherwise be rejected with "host required" for no
-                // reason if something ever triggered Save for them
-                // (today the UI doesn't, but defense in depth).
+
                 val config: ProxyConfig =
                     when (form.type) {
                         ProxyType.NONE -> ProxyConfig.None
@@ -748,7 +696,7 @@ class TweaksViewModel(
                         try {
                             proxyTester.test(config)
                         } catch (e: CancellationException) {
-                            // Preserve structured concurrency — never swallow.
+
                             throw e
                         } catch (e: Exception) {
                             ProxyTestOutcome.Failure.Unknown(e.message)
@@ -892,7 +840,7 @@ class TweaksViewModel(
                 _state.update { it.copy(isClearDownloadsDialogVisible = false) }
                 viewModelScope.launch {
                     runCatching {
-                        profileRepository.clearCache()
+                        cacheRepository.clearCache()
                     }.onSuccess {
                         cacheSizeJob?.cancel()
                         cacheSizeJob = null
@@ -921,30 +869,10 @@ class TweaksViewModel(
             TweaksAction.OnFeedbackDismiss ->
                 _state.update { it.copy(isFeedbackSheetVisible = false) }
 
-            is TweaksAction.OnTelemetryToggled -> {
-                viewModelScope.launch {
-                    tweaksRepository.setTelemetryEnabled(action.enabled)
-                }
-            }
-
-            TweaksAction.OnResetAnalyticsId -> {
-                viewModelScope.launch {
-                    // Clear the telemetry buffer *before* resetting the ID.
-                    // Order matters: any buffered event still carries the
-                    // old device ID in its EventRequest payload, so draining
-                    // them after the reset would leak the old ID to the
-                    // backend attached to "fresh start" identity semantics.
-                    telemetryRepository.clearPending()
-                    deviceIdentityRepository.resetDeviceId()
-                    _events.send(TweaksEvent.OnAnalyticsIdReset)
-                }
-            }
-
             is TweaksAction.OnTranslationProviderSelected -> {
                 when (action.provider) {
                     TranslationProvider.GOOGLE -> {
-                        // No credentials required — persist immediately
-                        // and clear any pending draft selection.
+
                         _state.update { it.copy(draftTranslationProvider = null) }
                         viewModelScope.launch {
                             tweaksRepository.setTranslationProvider(action.provider)
@@ -963,24 +891,14 @@ class TweaksViewModel(
                                 _events.send(TweaksEvent.OnTranslationProviderSaved)
                             }
                         } else {
-                            // No credentials yet — expose the selection as
-                            // a draft so the UI expands the credentials
-                            // form, but don't commit to storage. If we
-                            // persisted here the next translation attempt
-                            // would fail with "not configured" and any
-                            // other repository that observes the flow
-                            // would snap back on the next re-emission.
-                            // Committed later from [OnYoudaoCredentialsSave].
+
                             _state.update {
                                 it.copy(draftTranslationProvider = TranslationProvider.YOUDAO)
                             }
                         }
                     }
                     TranslationProvider.LIBRE_TRANSLATE -> {
-                        // No gating — repository falls back to the
-                        // public Disroot mirror when no URL configured,
-                        // so first-tap "just works" without going
-                        // through a config dialog.
+
                         _state.update { it.copy(draftTranslationProvider = null) }
                         viewModelScope.launch {
                             tweaksRepository.setTranslationProvider(action.provider)
@@ -1039,12 +957,7 @@ class TweaksViewModel(
                 viewModelScope.launch {
                     tweaksRepository.setYoudaoAppKey(current.youdaoAppKey)
                     tweaksRepository.setYoudaoAppSecret(current.youdaoAppSecret)
-                    // Auto-switch to YOUDAO when the user explicitly saves
-                    // credentials — saves them an extra tap and matches
-                    // the implicit intent ("I just configured this, use
-                    // it"). Also covers the "draft" case where the chip
-                    // was picked but not yet persisted because creds
-                    // were missing.
+
                     val shouldActivate =
                         current.youdaoAppKey.isNotBlank() &&
                             current.youdaoAppSecret.isNotBlank() &&
@@ -1055,8 +968,7 @@ class TweaksViewModel(
                     if (shouldActivate) {
                         tweaksRepository.setTranslationProvider(TranslationProvider.YOUDAO)
                     }
-                    // Drop any draft — either we committed it above or
-                    // the user emptied fields and cancelled implicitly.
+
                     _state.update { it.copy(draftTranslationProvider = null) }
                     _events.send(TweaksEvent.OnYoudaoCredentialsSaved)
                 }
@@ -1160,6 +1072,11 @@ class TweaksViewModel(
                 if (action.tag == _state.value.selectedAppLanguage) return
                 viewModelScope.launch {
                     tweaksRepository.setAppLanguage(action.tag)
+                    runCatching {
+                        tweaksRepository.addRestartReason(
+                            zed.rainxch.core.domain.model.RestartReason.LANGUAGE,
+                        )
+                    }
                     if (getPlatform() != Platform.ANDROID) {
                         _events.send(TweaksEvent.OnAppLanguageChangeRequiresRestart)
                     }
@@ -1239,9 +1156,7 @@ class TweaksViewModel(
                     if (result.isSuccess) {
                         _state.update { it.copy(customForgeDraft = "", customForgeError = null) }
                     } else {
-                        // Surface persistence failure (KSafe write
-                        // rejected by hardware-backed Keystore, etc.)
-                        // instead of silently clearing the draft.
+
                         _state.update {
                             it.copy(
                                 customForgeError = result.exceptionOrNull()?.message
@@ -1249,6 +1164,18 @@ class TweaksViewModel(
                             )
                         }
                     }
+                }
+            }
+
+            is TweaksAction.OnDiscoveryPlatformToggled -> {
+                viewModelScope.launch {
+                    val current = _state.value.selectedDiscoveryPlatforms
+                    val next = if (action.platform in current) {
+                        current - action.platform
+                    } else {
+                        current + action.platform
+                    }
+                    runCatching { tweaksRepository.setDiscoveryPlatforms(next) }
                 }
             }
 
@@ -1265,15 +1192,346 @@ class TweaksViewModel(
                     }
                 }
             }
+
+            TweaksAction.OnRestartNowClick -> {
+                viewModelScope.launch {
+                    runCatching { tweaksRepository.clearRestartReasons() }
+                    restartAppAfterLanguageChange()
+                }
+            }
+
+            TweaksAction.OnRestartLaterClick -> {
+                _state.update { it.copy(restartBannerSessionDismissed = true) }
+            }
+
+            is TweaksAction.OnMasterProxyTypeSelected -> {
+                mutateMasterForm { it.copy(type = action.type) }
+
+                if (action.type == ProxyType.NONE || action.type == ProxyType.SYSTEM) {
+                    val config =
+                        if (action.type == ProxyType.NONE) {
+                            ProxyConfig.None
+                        } else {
+                            ProxyConfig.System
+                        }
+                    viewModelScope.launch {
+                        runCatching {
+                            proxyRepository.setMasterProxyConfig(config)
+                            ProxyScope.entries.forEach { scope ->
+                                if (_state.value.useMain(scope)) {
+                                    proxyRepository.setProxyConfig(scope, config)
+                                }
+                            }
+                        }.onSuccess {
+                            _state.update {
+                                it.copy(
+                                    masterProxyForm = it.masterProxyForm.copy(isDraftDirty = false),
+                                )
+                            }
+                            _events.send(TweaksEvent.OnProxySaved)
+                        }.onFailure { error ->
+                            _events.send(
+                                TweaksEvent.OnProxySaveError(
+                                    error.message
+                                        ?: getString(Res.string.failed_to_save_proxy_settings),
+                                ),
+                            )
+                        }
+                    }
+                }
+            }
+
+            is TweaksAction.OnMasterProxyHostChanged -> {
+                mutateMasterForm { it.copy(host = action.host) }
+            }
+
+            is TweaksAction.OnMasterProxyPortChanged -> {
+                mutateMasterForm { it.copy(port = action.port) }
+            }
+
+            is TweaksAction.OnMasterProxyUsernameChanged -> {
+                mutateMasterForm { it.copy(username = action.username) }
+            }
+
+            is TweaksAction.OnMasterProxyPasswordChanged -> {
+                mutateMasterForm { it.copy(password = action.password) }
+            }
+
+            TweaksAction.OnMasterProxyPasswordVisibilityToggle -> {
+                mutateMasterForm { it.copy(isPasswordVisible = !it.isPasswordVisible) }
+            }
+
+            is TweaksAction.OnMasterProxyPasteUrl -> {
+                mutateMasterForm {
+                    it.copy(
+                        type = action.type,
+                        host = action.host,
+                        port = action.port.toString(),
+                        username = action.username.orEmpty(),
+                        password = action.password.orEmpty(),
+                    )
+                }
+            }
+
+            TweaksAction.OnMasterProxySave -> {
+                val config = buildMasterProxyConfig() ?: return
+                viewModelScope.launch {
+                    runCatching {
+                        proxyRepository.setMasterProxyConfig(config)
+                        ProxyScope.entries.forEach { scope ->
+                            if (_state.value.useMain(scope)) {
+                                proxyRepository.setProxyConfig(scope, config)
+                            }
+                        }
+                    }.onSuccess {
+                        _state.update {
+                            it.copy(
+                                masterProxyForm = it.masterProxyForm.copy(isDraftDirty = false),
+                            )
+                        }
+                        _events.send(TweaksEvent.OnProxySaved)
+                    }.onFailure { error ->
+                        _events.send(
+                            TweaksEvent.OnProxySaveError(
+                                error.message
+                                    ?: getString(Res.string.failed_to_save_proxy_settings),
+                            ),
+                        )
+                    }
+                }
+            }
+
+            TweaksAction.OnMasterProxyTest -> {
+                val form = _state.value.masterProxyForm
+                if (form.isTestInProgress) return
+                val config = buildMasterProxyConfigForTest() ?: return
+                _state.update {
+                    it.copy(masterProxyForm = it.masterProxyForm.copy(isTestInProgress = true))
+                }
+                viewModelScope.launch {
+                    val results = try {
+                        kotlinx.coroutines.coroutineScope {
+                            val search = async {
+                                runProbe(config, "https://api.github.com/zen")
+                            }
+                            val download = async {
+                                runProbe(config, "https://github.com/robots.txt")
+                            }
+                            val translation = async {
+                                runProbe(config, "https://translate.disroot.org")
+                            }
+                            Triple(search.await(), download.await(), translation.await())
+                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Triple<Long?, Long?, Long?>(null, null, null)
+                    } finally {
+                        _state.update {
+                            it.copy(
+                                masterProxyForm = it.masterProxyForm.copy(isTestInProgress = false),
+                            )
+                        }
+                    }
+                    _events.send(
+                        TweaksEvent.OnMasterProxyTestResult(
+                            searchMs = results.first,
+                            downloadMs = results.second,
+                            translationMs = results.third,
+                        ),
+                    )
+                }
+            }
+
+            TweaksAction.OnClearSeenHistoryRequest -> {
+                _state.update { it.copy(isClearSeenHistoryDialogVisible = true) }
+            }
+
+            TweaksAction.OnClearSeenHistoryDismiss -> {
+                _state.update { it.copy(isClearSeenHistoryDialogVisible = false) }
+            }
+
+            TweaksAction.OnClearSeenHistoryConfirm -> {
+                _state.update { it.copy(isClearSeenHistoryDialogVisible = false) }
+                onAction(TweaksAction.OnClearSeenRepos)
+            }
+
+            is TweaksAction.OnScopeUseMainToggled -> {
+                _state.update {
+                    it.copy(
+                        useMasterByScope = it.useMasterByScope + (action.scope to action.useMain),
+                    )
+                }
+                viewModelScope.launch {
+                    runCatching {
+                        proxyRepository.setUseMaster(action.scope, action.useMain)
+                        if (action.useMain) {
+                            val master = proxyRepository.getMasterProxyConfig().first()
+                            if (master != null) {
+                                proxyRepository.setProxyConfig(action.scope, master)
+                            }
+                        }
+                    }.onFailure { error ->
+                        _events.send(
+                            TweaksEvent.OnProxySaveError(
+                                error.message
+                                    ?: getString(Res.string.failed_to_save_proxy_settings),
+                            ),
+                        )
+                    }
+                }
+            }
         }
     }
 
-    /**
-     * Builds the [ProxyConfig] to test from the current form state for [scope].
-     * For [ProxyType.HTTP] / [ProxyType.SOCKS] this requires a valid host and
-     * port — if either is missing the user is told via an error event and
-     * `null` is returned, mirroring the validation in [TweaksAction.OnProxySave].
-     */
+    private suspend fun runProbe(config: ProxyConfig, url: String): Long? = try {
+        val outcome = proxyTester.test(config, url)
+        (outcome as? ProxyTestOutcome.Success)?.latencyMs
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun buildMasterProxyConfigForTest(): ProxyConfig? {
+        val form = _state.value.masterProxyForm
+        return when (form.type) {
+            ProxyType.NONE -> ProxyConfig.None
+            ProxyType.SYSTEM -> ProxyConfig.System
+            ProxyType.HTTP -> {
+                val host = form.host.trim().takeIf { it.isNotEmpty() } ?: return null
+                val port = form.port.toIntOrNull() ?: return null
+                ProxyConfig.Http(
+                    host,
+                    port,
+                    form.username.takeIf { it.isNotBlank() },
+                    form.password.takeIf { it.isNotBlank() },
+                )
+            }
+            ProxyType.SOCKS -> {
+                val host = form.host.trim().takeIf { it.isNotEmpty() } ?: return null
+                val port = form.port.toIntOrNull() ?: return null
+                ProxyConfig.Socks(
+                    host,
+                    port,
+                    form.username.takeIf { it.isNotBlank() },
+                    form.password.takeIf { it.isNotBlank() },
+                )
+            }
+        }
+    }
+
+    private fun observeNeedsRestartReasons() {
+        viewModelScope.launch {
+            tweaksRepository.getNeedsRestartReasons().collect { reasons ->
+                _state.update { it.copy(needsRestartReasons = reasons) }
+            }
+        }
+    }
+
+    private fun observeMasterProxyConfig() {
+        viewModelScope.launch {
+            proxyRepository.getMasterProxyConfig().collect { config ->
+                _state.update { state ->
+                    if (state.masterProxyForm.isDraftDirty) return@update state
+                    val existing = state.masterProxyForm
+                    val populated = when (config) {
+                        null -> existing.copy(type = ProxyType.NONE)
+                        is ProxyConfig.None -> existing.copy(
+                            type = ProxyType.NONE,
+                        )
+                        is ProxyConfig.System -> existing.copy(
+                            type = ProxyType.SYSTEM,
+                        )
+                        is ProxyConfig.Http -> existing.copy(
+                            type = ProxyType.HTTP,
+                            host = config.host,
+                            port = config.port.toString(),
+                            username = config.username.orEmpty(),
+                            password = config.password.orEmpty(),
+                        )
+                        is ProxyConfig.Socks -> existing.copy(
+                            type = ProxyType.SOCKS,
+                            host = config.host,
+                            port = config.port.toString(),
+                            username = config.username.orEmpty(),
+                            password = config.password.orEmpty(),
+                        )
+                    }
+                    state.copy(masterProxyForm = populated)
+                }
+            }
+        }
+    }
+
+    private fun observeUseMasterFlags() {
+        ProxyScope.entries.forEach { scope ->
+            viewModelScope.launch {
+                proxyRepository.getUseMaster(scope).collect { useMaster ->
+                    _state.update { state ->
+                        state.copy(
+                            useMasterByScope = state.useMasterByScope + (scope to useMaster),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun observeDiscoveryPlatforms() {
+        viewModelScope.launch {
+            tweaksRepository.getDiscoveryPlatforms().collect { platforms ->
+                _state.update { it.copy(selectedDiscoveryPlatforms = platforms) }
+            }
+        }
+    }
+
+    private fun mutateMasterForm(block: (ProxyScopeFormState) -> ProxyScopeFormState) {
+        _state.update { state ->
+            val updated = block(state.masterProxyForm).copy(isDraftDirty = true)
+            state.copy(masterProxyForm = updated)
+        }
+    }
+
+    private fun buildMasterProxyConfig(): ProxyConfig? {
+        val form = _state.value.masterProxyForm
+        return when (form.type) {
+            ProxyType.NONE -> ProxyConfig.None
+            ProxyType.SYSTEM -> ProxyConfig.System
+            ProxyType.HTTP, ProxyType.SOCKS -> {
+                val port = form.port.toIntOrNull()?.takeIf { it in 1..65535 } ?: run {
+                    viewModelScope.launch {
+                        _events.send(
+                            TweaksEvent.OnProxySaveError(
+                                getString(Res.string.invalid_proxy_port),
+                            ),
+                        )
+                    }
+                    return null
+                }
+                val host = form.host.trim().takeIf { isValidProxyHost(it) } ?: run {
+                    val isBlank = form.host.isBlank()
+                    viewModelScope.launch {
+                        val msg = if (isBlank) {
+                            getString(Res.string.proxy_host_required)
+                        } else {
+                            getString(Res.string.proxy_host_invalid)
+                        }
+                        _events.send(TweaksEvent.OnProxySaveError(msg))
+                    }
+                    return null
+                }
+                val username = form.username.takeIf { it.isNotBlank() }
+                val password = form.password.takeIf { it.isNotBlank() }
+                if (form.type == ProxyType.HTTP) {
+                    ProxyConfig.Http(host, port, username, password)
+                } else {
+                    ProxyConfig.Socks(host, port, username, password)
+                }
+            }
+        }
+    }
+
     private fun buildProxyConfigForTest(scope: ProxyScope): ProxyConfig? {
         val form = _state.value.formFor(scope)
         return when (form.type) {
@@ -1320,19 +1578,6 @@ class TweaksViewModel(
         }
     }
 
-    /**
-     * Light-but-real proxy host validator. Accepts:
-     *  - IPv4 dotted-quad (`192.168.1.1`) with octet range 0..255
-     *  - IPv6 literal, with or without surrounding brackets (`::1`,
-     *    `[2001:db8::1]`) — character-level only, doesn't validate
-     *    canonical form
-     *  - RFC 1123 hostname — labels of 1..63 alphanumeric / hyphen
-     *    characters separated by dots, must start/end with alphanumeric
-     *
-     * Rejects: garbage strings (`not a url`), schemes (`http://...`),
-     * paths (`example.com/api`), spaces, control characters. Mirrors the
-     * port validator's "reject and show clear error" contract.
-     */
     private fun isValidProxyHost(raw: String): Boolean {
         val host = raw.trim()
         if (host.isBlank()) return false
@@ -1372,10 +1617,7 @@ class TweaksViewModel(
                 )
 
             is ProxyTestOutcome.Failure.Unknown ->
-                // Raw exception messages are platform-specific, untranslated,
-                // and may leak internal detail — always show the localized
-                // fallback to the user. The original `message` is intentionally
-                // dropped here; surface it via logging if diagnostics are needed.
+
                 TweaksEvent.OnProxyTestError(getString(Res.string.proxy_test_error_unknown))
         }
 }

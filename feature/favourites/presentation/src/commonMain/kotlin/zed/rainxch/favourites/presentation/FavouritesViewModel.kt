@@ -16,16 +16,16 @@ import kotlinx.coroutines.launch
 import zed.rainxch.core.domain.model.FavoriteRepo
 import zed.rainxch.core.domain.repository.FavouritesRepository
 import zed.rainxch.core.domain.repository.TweaksRepository
+import zed.rainxch.core.domain.repository.UserSessionRepository
 import zed.rainxch.favourites.presentation.mappers.toFavouriteRepositoryUi
 import zed.rainxch.favourites.presentation.model.FavouritesSortRule
-import zed.rainxch.profile.domain.repository.ProfileRepository
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 class FavouritesViewModel(
     private val favouritesRepository: FavouritesRepository,
-    private val profileRepository: ProfileRepository,
     private val tweaksRepository: TweaksRepository,
+    private val userSessionRepository: UserSessionRepository
 ) : ViewModel() {
     private var hasLoadedInitialData = false
 
@@ -48,7 +48,7 @@ class FavouritesViewModel(
         viewModelScope.launch {
             combine(
                 favouritesRepository.getAllFavorites(),
-                profileRepository.getUser(),
+                userSessionRepository.getUser(),
                 tweaksRepository.getFavouritesSortRule(),
             ) { favorites, user, sortStored ->
                 val sortRule = FavouritesSortRule.fromName(sortStored)

@@ -3,7 +3,9 @@
 package zed.rainxch.apps.presentation.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import zed.rainxch.core.presentation.theme.tokens.Radii
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,10 +24,11 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenu
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -70,17 +73,6 @@ import zed.rainxch.githubstore.core.presentation.res.discard_pending_install
 import zed.rainxch.githubstore.core.presentation.res.variant_picker_open
 import kotlin.time.ExperimentalTime
 
-/**
- * 64dp single-line row used in the "Up to date" section. Drops the verbose
- * controls of [zed.rainxch.apps.presentation.AppItemCard] (filter / variant /
- * pre-release / inline status text). Per-app configuration moves into the
- * trailing overflow menu, which routes to the existing bottom sheet.
- *
- * Accessibility: the entire row carries a single merged semantic name that
- * surfaces every "hidden" flag (filter active / variant pinned / pre-release
- * on / variant stale / pending install / ready to install) so screen-reader
- * users don't lose context that the dot cluster encodes visually.
- */
 @Composable
 fun CompactAppRow(
     appItem: AppItem,
@@ -106,16 +98,21 @@ fun CompactAppRow(
     val rowSemanticName = buildCompactRowSemantics(app.appName, app.installedVersion, flags)
 
     Row(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 64.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .clickable(onClick = onRowClick)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-                .semantics(mergeDescendants = true) {
-                    contentDescription = rowSemanticName
-                },
+        modifier = modifier
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 68.dp)
+            .clip(Radii.row)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline,
+                shape = Radii.row,
+            )
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onRowClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = rowSemanticName
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -159,35 +156,20 @@ fun CompactAppRow(
         }
 
         if (app.pendingInstallFilePath != null) {
-            // One-tap path for a parked download — surface the install
-            // primary CTA even in compact mode because the file is on disk
-            // and finishing the install is the user's expected action.
-            Button(
+
+            GhsButton(
                 onClick = onInstallPendingClick,
+                label = stringResource(Res.string.install),
+                variant = GhsButtonVariant.Primary,
+                size = GhsButtonSize.Sm,
                 enabled = !isBusy,
-                contentPadding = PaddingValues(horizontal = 12.dp),
-                modifier = Modifier.height(40.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Update,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = stringResource(Res.string.install),
-                    style = MaterialTheme.typography.labelMedium,
-                )
-            }
+                leadingIcon = Icons.Default.Update,
+            )
             Spacer(Modifier.width(4.dp))
         } else if (app.isPendingInstall) {
-            // Pending row whose file isn't (or is no longer) on disk.
-            // The app isn't installed; suppress the Open shortcut so we
-            // don't dead-end on a launch failure. Discard is reachable
-            // from the overflow.
+
         } else if (!isBusy) {
-            // Subtle Open shortcut keeps the most-frequent action one tap
-            // away even though the row itself opens the repo on tap.
+
             IconButton(
                 onClick = onOpenClick,
                 modifier = Modifier.size(40.dp),
@@ -258,47 +240,47 @@ private fun CompactRowOverflow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        DropdownMenu(
+        GhsDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
         ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.advanced_settings_open)) },
+            GhsDropdownMenuItem(
+                text = stringResource(Res.string.advanced_settings_open),
                 onClick = {
                     expanded = false
                     onAdvancedSettingsClick()
                 },
             )
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.variant_picker_open)) },
+            GhsDropdownMenuItem(
+                text = stringResource(Res.string.variant_picker_open),
                 onClick = {
                     expanded = false
                     onPickVariantClick()
                 },
             )
-            DropdownMenuItem(
-                text = {
-                    val baseLabel = stringResource(Res.string.pre_release_badge)
-                    Text(text = if (isPreReleaseEnabled) "$baseLabel  ✓" else baseLabel)
-                },
-                onClick = {
-                    expanded = false
-                    onTogglePreReleases(!isPreReleaseEnabled)
-                },
-            )
-            DropdownMenuItem(
-                text = {
-                    val baseLabel = stringResource(Res.string.apps_ignore_updates)
-                    Text(text = if (!isUpdateCheckEnabled) "$baseLabel  ✓" else baseLabel)
-                },
-                onClick = {
-                    expanded = false
-                    onToggleUpdateCheck(!isUpdateCheckEnabled)
-                },
-            )
+            run {
+                val baseLabel = stringResource(Res.string.pre_release_badge)
+                GhsDropdownMenuItem(
+                    text = if (isPreReleaseEnabled) "$baseLabel  ✓" else baseLabel,
+                    onClick = {
+                        expanded = false
+                        onTogglePreReleases(!isPreReleaseEnabled)
+                    },
+                )
+            }
+            run {
+                val baseLabel = stringResource(Res.string.apps_ignore_updates)
+                GhsDropdownMenuItem(
+                    text = if (!isUpdateCheckEnabled) "$baseLabel  ✓" else baseLabel,
+                    onClick = {
+                        expanded = false
+                        onToggleUpdateCheck(!isUpdateCheckEnabled)
+                    },
+                )
+            }
             if (hasSkippedReleaseTag) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(Res.string.apps_skip_version_unskip)) },
+                GhsDropdownMenuItem(
+                    text = stringResource(Res.string.apps_skip_version_unskip),
                     onClick = {
                         expanded = false
                         onUnskipVersionClick()
@@ -306,13 +288,9 @@ private fun CompactRowOverflow(
                 )
             }
             if (isPending) {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = stringResource(Res.string.discard_pending_install),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    },
+                GhsDropdownMenuItem(
+                    text = stringResource(Res.string.discard_pending_install),
+                    contentColor = MaterialTheme.colorScheme.error,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Outlined.DeleteOutline,
@@ -326,13 +304,9 @@ private fun CompactRowOverflow(
                     },
                 )
             } else {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = stringResource(Res.string.uninstall),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    },
+                GhsDropdownMenuItem(
+                    text = stringResource(Res.string.uninstall),
+                    contentColor = MaterialTheme.colorScheme.error,
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Outlined.DeleteOutline,
@@ -348,7 +322,6 @@ private fun CompactRowOverflow(
             }
         }
     }
-    // Suppress unused-parameter warning; isUpdateAvailable reserved for
-    // future Update CTA in compact mode if we ever want it.
+
     @Suppress("UNUSED_EXPRESSION") isUpdateAvailable
 }

@@ -17,13 +17,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
+import zed.rainxch.core.presentation.components.inputs.GhsTextField
 import zed.rainxch.githubstore.core.presentation.res.*
 import zed.rainxch.tweaks.presentation.TweaksAction
 import zed.rainxch.tweaks.presentation.TweaksState
@@ -35,12 +37,11 @@ fun CustomForgesDialog(
 ) {
     AlertDialog(
         onDismissRequest = { onAction(TweaksAction.OnDismissCustomForgesDialog) },
+        shape = zed.rainxch.core.presentation.theme.shapes.WonkySquircleShape.Dialog,
         title = { Text(stringResource(Res.string.custom_forges_dialog_title)) },
         text = {
             Column {
-                // Reassure the user: Codeberg ships built-in, so adding
-                // it here is a no-op. The dialog is purely for users
-                // running their own Forgejo / Gitea host.
+
                 Surface(
                     color = MaterialTheme.colorScheme.tertiaryContainer,
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
@@ -63,17 +64,20 @@ fun CustomForgesDialog(
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedTextField(
+                    GhsTextField(
                         value = state.customForgeDraft,
                         onValueChange = { onAction(TweaksAction.OnCustomForgeDraftChanged(it)) },
-                        placeholder = { Text("forgejo.example.com") },
+                        placeholder = "forgejo.example.com",
                         singleLine = true,
                         isError = state.customForgeError != null,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = { onAction(TweaksAction.OnAddCustomForge) }) {
-                        Text(stringResource(Res.string.custom_forges_add_button))
-                    }
+                    GhsButton(
+                        onClick = { onAction(TweaksAction.OnAddCustomForge) },
+                        label = stringResource(Res.string.custom_forges_add_button),
+                        variant = GhsButtonVariant.Text,
+                        size = GhsButtonSize.Sm,
+                    )
                 }
                 if (state.customForgeError != null) {
                     Text(
@@ -113,9 +117,12 @@ fun CustomForgesDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onAction(TweaksAction.OnDismissCustomForgesDialog) }) {
-                Text(stringResource(Res.string.done))
-            }
+            GhsButton(
+                onClick = { onAction(TweaksAction.OnDismissCustomForgesDialog) },
+                label = stringResource(Res.string.done),
+                variant = GhsButtonVariant.Text,
+                size = GhsButtonSize.Sm,
+            )
         },
     )
 }

@@ -16,8 +16,6 @@ sealed interface ProfileAction {
 
     data object OnRecentlyViewedClick : ProfileAction
 
-    data object OnSponsorClick : ProfileAction
-
     data object OnWhatsNewClick : ProfileAction
 
     data object OnWhatsNewLongClick : ProfileAction
@@ -25,4 +23,8 @@ sealed interface ProfileAction {
     data object OnAnnouncementsClick : ProfileAction
 
     data object OnAnnouncementsLongClick : ProfileAction
+
+    data object OnTweaksClick : ProfileAction
+
+    data object OnAboutClick : ProfileAction
 }

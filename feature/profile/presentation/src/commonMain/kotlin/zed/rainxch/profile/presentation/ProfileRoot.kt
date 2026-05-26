@@ -1,6 +1,8 @@
 package zed.rainxch.profile.presentation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -13,17 +15,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import zed.rainxch.core.presentation.components.chrome.GhsHomeTopBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
@@ -33,11 +34,15 @@ import zed.rainxch.core.presentation.locals.LocalBottomNavigationHeight
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.core.presentation.utils.arrowKeyScroll
-import zed.rainxch.githubstore.core.presentation.res.*
-import zed.rainxch.profile.presentation.components.ClearDownloadsDialog
+import zed.rainxch.core.presentation.utils.constrainedContentWidth
+import zed.rainxch.githubstore.core.presentation.res.Res
+import zed.rainxch.githubstore.core.presentation.res.downloads_cleared
+import zed.rainxch.githubstore.core.presentation.res.logout_success
+import zed.rainxch.githubstore.core.presentation.res.profile_title
+import zed.rainxch.githubstore.core.presentation.res.proxy_saved
+import zed.rainxch.githubstore.core.presentation.res.seen_history_cleared
 import zed.rainxch.profile.presentation.components.LogoutDialog
-import zed.rainxch.profile.presentation.components.sections.logout
-import zed.rainxch.profile.presentation.components.sections.profile
+import zed.rainxch.profile.presentation.components.profileSections
 
 @Composable
 fun ProfileRoot(
@@ -47,11 +52,12 @@ fun ProfileRoot(
     onNavigateToStarredRepos: () -> Unit,
     onNavigateToFavouriteRepos: () -> Unit,
     onNavigateToRecentlyViewed: () -> Unit,
-    onNavigateToSponsor: () -> Unit,
     onNavigateToWhatsNew: () -> Unit,
     onPreviewWhatsNewSheet: () -> Unit,
     onNavigateToAnnouncements: () -> Unit,
     onPreviewAnnouncements: () -> Unit,
+    onNavigateToTweaks: () -> Unit,
+    onNavigateToAbout: () -> Unit,
     hasUnreadAnnouncements: Boolean,
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
@@ -132,10 +138,6 @@ fun ProfileRoot(
                     onNavigateToRecentlyViewed()
                 }
 
-                ProfileAction.OnSponsorClick -> {
-                    onNavigateToSponsor()
-                }
-
                 ProfileAction.OnWhatsNewClick -> {
                     onNavigateToWhatsNew()
                 }
@@ -150,6 +152,14 @@ fun ProfileRoot(
 
                 ProfileAction.OnAnnouncementsLongClick -> {
                     onPreviewAnnouncements()
+                }
+
+                ProfileAction.OnTweaksClick -> {
+                    onNavigateToTweaks()
+                }
+
+                ProfileAction.OnAboutClick -> {
+                    onNavigateToAbout()
                 }
 
                 else -> {
@@ -189,57 +199,38 @@ fun ProfileScreen(
             )
         },
         topBar = {
-            TopAppBar()
+            GhsHomeTopBar(title = stringResource(Res.string.profile_title))
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
         val listState = rememberLazyListState()
-        LazyColumn(
-            state = listState,
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(16.dp)
-                    .arrowKeyScroll(listState, autoFocus = true),
+        Box(
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            profile(
-                state = state,
-                hasUnreadAnnouncements = hasUnreadAnnouncements,
-                onAction = onAction,
-            )
-
-            item {
-                Spacer(Modifier.height(32.dp))
-            }
-
-            if (state.isUserLoggedIn) {
-                logout(
+            LazyColumn(
+                state = listState,
+                modifier =
+                    Modifier
+                        .constrainedContentWidth()
+                        .fillMaxHeight()
+                        .padding(16.dp)
+                        .arrowKeyScroll(listState, autoFocus = true),
+            ) {
+                profileSections(
+                    state = state,
+                    hasUnreadAnnouncements = hasUnreadAnnouncements,
                     onAction = onAction,
                 )
-            }
 
-            item {
-                Spacer(Modifier.height(bottomNavHeight + 32.dp))
+                item {
+                    Spacer(Modifier.height(bottomNavHeight + 32.dp))
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun TopAppBar() {
-    TopAppBar(
-        title = {
-            Text(
-                text = stringResource(Res.string.profile_title),
-                style = MaterialTheme.typography.titleMediumEmphasized,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        },
-    )
-}
 
 @Preview
 @Composable

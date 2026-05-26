@@ -28,24 +28,22 @@ import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
+import zed.rainxch.core.presentation.components.inputs.GhsTextField
+import zed.rainxch.core.presentation.components.overlays.GhsBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -67,11 +65,9 @@ fun LinkAppBottomSheet(
     state: AppsState,
     onAction: (AppsAction) -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
-    ModalBottomSheet(
+    GhsBottomSheet(
         onDismissRequest = { onAction(AppsAction.OnDismissLinkSheet) },
-        sheetState = sheetState,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         AnimatedContent(
             targetState = state.linkStep,
@@ -168,26 +164,13 @@ private fun PickAppStep(
 
         Spacer(Modifier.height(12.dp))
 
-        TextField(
+        GhsTextField(
             value = searchQuery,
             onValueChange = onSearchChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp)),
-            placeholder = {
-                Text(stringResource(Res.string.search_apps_hint))
-            },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                )
-            },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = stringResource(Res.string.search_apps_hint),
+            leadingIcon = Icons.Default.Search,
             singleLine = true,
-            colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent,
-            ),
         )
 
         Spacer(Modifier.height(8.dp))
@@ -433,13 +416,12 @@ private fun SmartMatchStep(
                     color = MaterialTheme.colorScheme.error,
                 )
                 Spacer(Modifier.height(8.dp))
-                FilledTonalButton(
+                GhsButton(
                     onClick = onRetry,
+                    label = stringResource(Res.string.retry),
+                    variant = GhsButtonVariant.Tonal,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text(stringResource(Res.string.retry))
-                }
+                )
             }
 
             suggestions.isEmpty() -> {
@@ -458,11 +440,7 @@ private fun SmartMatchStep(
                 ) {
                     items(
                         items = suggestions,
-                        // Lists may now mix GitHub + Forgejo hits for
-                        // the same owner/repo slug across hosts —
-                        // include sourceHost in the key so identical
-                        // slugs on different forges render as distinct
-                        // rows.
+
                         key = { "${it.sourceHost ?: "github"}|${it.owner}/${it.repo}" },
                     ) { suggestion ->
                         SuggestionRow(
@@ -485,14 +463,13 @@ private fun SmartMatchStep(
 
         Spacer(Modifier.height(12.dp))
 
-        FilledTonalButton(
+        GhsButton(
             onClick = onEnterUrlManually,
-            modifier = Modifier.fillMaxWidth(),
+            label = stringResource(Res.string.link_smart_search_enter_manually),
+            variant = GhsButtonVariant.Tonal,
             enabled = !isValidating,
-            shape = RoundedCornerShape(12.dp),
-        ) {
-            Text(stringResource(Res.string.link_smart_search_enter_manually))
-        }
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -530,7 +507,7 @@ private fun SuggestionRow(
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Host badge — answers "where is this suggestion from".
+
                 HostBadge(suggestion.sourceHost)
                 Spacer(Modifier.width(6.dp))
                 MatchSourceChip(suggestion.source)
@@ -597,11 +574,7 @@ private fun MatchSourceChip(source: RepoMatchSource) {
         RepoMatchSource.FINGERPRINT -> stringResource(Res.string.match_source_fingerprint)
         RepoMatchSource.SEARCH -> stringResource(Res.string.match_source_search)
         RepoMatchSource.MANUAL -> stringResource(Res.string.match_source_manual)
-        // Reuses the "search" string for now — distinguishing the
-        // forge in the chip would need a new translated label per
-        // locale, which can come later. The underlying source-host
-        // is what actually drives URL building and the row's source
-        // chip on the Details / Apps screen.
+
         RepoMatchSource.FORGEJO_SEARCH -> stringResource(Res.string.match_source_search)
     }
     Surface(
@@ -655,7 +628,6 @@ private fun EnterUrlStep(
 
         Spacer(Modifier.height(16.dp))
 
-        // Selected app info
         if (selectedApp != null) {
             Row(
                 modifier = Modifier
@@ -688,43 +660,31 @@ private fun EnterUrlStep(
 
         Spacer(Modifier.height(16.dp))
 
-        OutlinedTextField(
+        GhsTextField(
             value = repoUrl,
             onValueChange = onUrlChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(Res.string.enter_repo_url)) },
-            placeholder = { Text(stringResource(Res.string.repo_url_hint)) },
+            label = stringResource(Res.string.enter_repo_url),
+            placeholder = stringResource(Res.string.repo_url_hint),
             singleLine = true,
             isError = validationError != null,
-            supportingText = validationError?.let {
-                { Text(it, color = MaterialTheme.colorScheme.error) }
-            },
-            shape = RoundedCornerShape(12.dp),
+            supportingText = validationError,
         )
 
         Spacer(Modifier.height(20.dp))
 
-        FilledTonalButton(
+        GhsButton(
             onClick = onConfirm,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = repoUrl.isNotBlank() && !isValidating,
-            shape = RoundedCornerShape(12.dp),
-        ) {
-            if (isValidating) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(Res.string.validating_repo))
+            label = if (isValidating) {
+                stringResource(Res.string.validating_repo)
             } else {
-                Text(
-                    text = stringResource(Res.string.link_and_track),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
+                stringResource(Res.string.link_and_track)
+            },
+            variant = GhsButtonVariant.Tonal,
+            enabled = repoUrl.isNotBlank() && !isValidating,
+            loading = isValidating,
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         if (isValidating && validationStatus != null) {
             Spacer(Modifier.height(8.dp))
@@ -790,60 +750,34 @@ private fun PickAssetStep(
 
         Spacer(Modifier.height(12.dp))
 
-        // Asset filter — for monorepos that ship multiple apps from the
-        // same repo. Live-narrows the visible list and is persisted with
-        // the link, so the update checker only ever resolves matching APKs.
-        OutlinedTextField(
+        val filterSupporting = when {
+            filterError != null -> stringResource(Res.string.asset_filter_invalid)
+            visibleAssets.isEmpty() && filterValue.isNotBlank() ->
+                stringResource(Res.string.asset_filter_no_match)
+            filterValue.isNotBlank() ->
+                pluralStringResource(
+                    Res.plurals.asset_filter_visible_count,
+                    allAssets.size,
+                    visibleAssets.size,
+                    allAssets.size,
+                )
+            else -> stringResource(Res.string.asset_filter_help)
+        }
+        GhsTextField(
             value = filterValue,
             onValueChange = onFilterChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text(stringResource(Res.string.asset_filter_label)) },
-            placeholder = { Text(stringResource(Res.string.asset_filter_placeholder)) },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.FilterAlt,
-                    contentDescription = null,
-                )
-            },
+            label = stringResource(Res.string.asset_filter_label),
+            placeholder = stringResource(Res.string.asset_filter_placeholder),
+            leadingIcon = Icons.Default.FilterAlt,
             singleLine = true,
             isError = filterError != null,
-            supportingText = {
-                Text(
-                    text =
-                        when {
-                            filterError != null -> stringResource(Res.string.asset_filter_invalid)
-                            visibleAssets.isEmpty() && filterValue.isNotBlank() ->
-                                stringResource(Res.string.asset_filter_no_match)
-                            filterValue.isNotBlank() ->
-                                // Pass the total asset count as the plural
-                                // quantity so Polish/Russian inflection picks
-                                // the right form based on the *collection*
-                                // size, and supply both counts as format args.
-                                pluralStringResource(
-                                    Res.plurals.asset_filter_visible_count,
-                                    allAssets.size,
-                                    visibleAssets.size,
-                                    allAssets.size,
-                                )
-                            else -> stringResource(Res.string.asset_filter_help)
-                        },
-                    color =
-                        if (filterError != null) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                )
-            },
+            supportingText = filterSupporting,
             enabled = !isProcessing,
-            shape = RoundedCornerShape(12.dp),
         )
 
         Spacer(Modifier.height(8.dp))
 
-        // Fall-back-to-older-releases toggle. Only meaningful when a filter
-        // is set; in monorepos, the latest release is often for the wrong
-        // app, so the checker needs to walk back to find this app's APK.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -938,12 +872,7 @@ private fun PickAssetStep(
 
             if (visibleAssets.isEmpty()) {
                 item {
-                    // Three distinct empty states:
-                    //  - No installable assets at all in the repo release
-                    //    (defensive: validateAndLinkRepo short-circuits
-                    //    this today, but guard in case flows change)
-                    //  - Filter regex is invalid (shown in error color)
-                    //  - Filter is valid but matched nothing
+
                     val (message, isError) = when {
                         allAssets.isEmpty() ->
                             stringResource(Res.string.asset_none_available) to false

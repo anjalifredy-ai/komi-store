@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import zed.rainxch.core.domain.model.ForgeKind
 import zed.rainxch.core.domain.model.HostNames
-import zed.rainxch.core.domain.repository.AuthenticationState
+import zed.rainxch.core.domain.repository.UserSessionRepository
 import zed.rainxch.core.domain.repository.HostTokenRepository
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.host_tokens_saved
@@ -26,7 +26,7 @@ import zed.rainxch.githubstore.core.presentation.res.host_tokens_validation_toke
 
 class HostTokensViewModel(
     private val repository: HostTokenRepository,
-    private val authenticationState: AuthenticationState,
+    private val userSessionRepository: UserSessionRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HostTokensState(isLoading = true))
@@ -37,10 +37,7 @@ class HostTokensViewModel(
 
     init {
         viewModelScope.launch {
-            // .catch so a downstream KSafe / serialization throw doesn't
-            // tear down the collector and leave the screen stuck on the
-            // initial loading spinner. We surface the failure once via
-            // Message and drop isLoading so the UI shows the empty state.
+
             repository.observeAll()
                 .catch { t ->
                     _state.update { it.copy(isLoading = false) }
@@ -60,8 +57,8 @@ class HostTokensViewModel(
                 }
         }
         viewModelScope.launch {
-            authenticationState.isUserLoggedIn()
-                .catch { /* swallow — OAuth state is non-critical for this screen */ }
+            userSessionRepository.isUserLoggedIn()
+                .catch {   }
                 .collect { signedIn ->
                     _state.update { it.copy(isOAuthSignedInToGithub = signedIn) }
                 }
@@ -70,7 +67,7 @@ class HostTokensViewModel(
 
     fun onAction(action: HostTokensAction) {
         when (action) {
-            HostTokensAction.OnNavigateBack -> { /* host handles */ }
+            HostTokensAction.OnNavigateBack -> {   }
 
             HostTokensAction.OnAddClicked ->
                 _state.update { it.copy(draftMode = DraftMode.Picker) }
@@ -259,10 +256,7 @@ class HostTokensViewModel(
             if (result.isSuccess) {
                 _state.update { it.copy(pendingUndoDelete = null) }
             } else {
-                // Surface the failure but keep `pendingUndoDelete` populated so
-                // the user could trigger another undo (if surfaced) instead of
-                // losing the bytes silently. The actual "another undo" surface
-                // does not exist today; at minimum we emit the error.
+
                 _events.send(
                     HostTokensEvent.Message(
                         getString(Res.string.host_tokens_undo_failed, pending.host),

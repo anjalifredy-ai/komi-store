@@ -1,5 +1,6 @@
 package zed.rainxch.apps.presentation.import.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -16,13 +17,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
+import zed.rainxch.core.presentation.theme.tokens.Radii
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -72,12 +73,13 @@ fun CandidateCard(
     val reducedMotion = LocalReducedMotion.current
 
     Surface(
-        tonalElevation = 1.dp,
-        shape = RoundedCornerShape(20.dp),
+        shape = Radii.row,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier =
             modifier
                 .fillMaxWidth()
+                .clip(Radii.row)
                 .clickable(
                     onClickLabel = if (expanded) collapseLabel else expandLabel,
                     role = Role.Button,
@@ -91,10 +93,6 @@ fun CandidateCard(
 
             PreselectedRow(suggestion = candidate.preselectedSuggestion)
 
-            // Collapsed footer: primary Link CTA (or hint) + expand affordance.
-            // The whole card is clickable to expand, but a dedicated control
-            // gives the disclosure a clear screen-reader role and a tap target
-            // that doesn't fight the underlying CTA buttons in expanded mode.
             if (!expanded) {
                 CollapsedActions(
                     canLink = candidate.preselectedSuggestion != null,
@@ -137,19 +135,18 @@ fun CandidateCard(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        OutlinedButton(
+                        GhsButton(
                             onClick = onSkip,
+                            label = stringResource(Res.string.external_import_card_action_skip),
+                            variant = GhsButtonVariant.Outline,
                             modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(Res.string.external_import_card_action_skip))
-                        }
-                        TextButton(onClick = onToggleExpanded) {
-                            Text(stringResource(Res.string.external_import_card_action_less))
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowUp,
-                                contentDescription = null,
-                            )
-                        }
+                        )
+                        GhsButton(
+                            onClick = onToggleExpanded,
+                            label = stringResource(Res.string.external_import_card_action_less),
+                            variant = GhsButtonVariant.Text,
+                            trailingIcon = Icons.Default.KeyboardArrowUp,
+                        )
                     }
                 }
             }
@@ -169,23 +166,20 @@ private fun CollapsedActions(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (canLink) {
-            Button(
+            GhsButton(
                 onClick = onLink,
+                label = stringResource(Res.string.external_import_card_action_link),
+                variant = GhsButtonVariant.Primary,
                 modifier = Modifier.weight(1f),
-            ) {
-                Text(stringResource(Res.string.external_import_card_action_link))
-            }
-        }
-        TextButton(
-            onClick = onExpand,
-            modifier = if (canLink) Modifier else Modifier.weight(1f),
-        ) {
-            Text(stringResource(Res.string.external_import_card_action_more))
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
             )
         }
+        GhsButton(
+            onClick = onExpand,
+            label = stringResource(Res.string.external_import_card_action_more),
+            variant = GhsButtonVariant.Text,
+            trailingIcon = Icons.Default.KeyboardArrowDown,
+            modifier = if (canLink) Modifier else Modifier.weight(1f),
+        )
     }
 }
 

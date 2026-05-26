@@ -64,7 +64,11 @@ class DeveloperProfileViewModel(
                                 profile = profile,
                                 isLoading = false,
                                 isLoadingRepos = true,
+                                isLoadingContributions = !profile.isOrganization,
                             )
+                        }
+                        if (!profile.isOrganization) {
+                            loadContributions()
                         }
                     }.onFailure { error ->
                         _state.update {
@@ -119,6 +123,23 @@ class DeveloperProfileViewModel(
         }
     }
 
+    private fun loadContributions() {
+        viewModelScope.launch {
+            repository.getContributionCalendar(username)
+                .onSuccess { cal ->
+                    _state.update {
+                        it.copy(
+                            contributions = cal,
+                            isLoadingContributions = false,
+                        )
+                    }
+                }
+                .onFailure {
+                    _state.update { it.copy(isLoadingContributions = false) }
+                }
+        }
+    }
+
     private fun applyFiltersAndSort() {
         viewModelScope.launch(Dispatchers.Default) {
             val currentState = _state.value
@@ -137,9 +158,11 @@ class DeveloperProfileViewModel(
             filtered =
                 when (currentState.currentFilter) {
                     RepoFilterType.WITH_RELEASES -> {
-                        filtered
-                            .filter { it.hasInstallableAssets }
-                            .toImmutableList()
+                        filtered.filter { it.hasReleases }.toImmutableList()
+                    }
+
+                    RepoFilterType.WITH_INSTALLABLE -> {
+                        filtered.filter { it.hasInstallableAssets }.toImmutableList()
                     }
 
                     RepoFilterType.INSTALLED -> {
@@ -179,6 +202,7 @@ class DeveloperProfileViewModel(
             DeveloperProfileAction.OnNavigateBackClick,
             is DeveloperProfileAction.OnRepositoryClick,
             is DeveloperProfileAction.OnOpenLink,
+            is DeveloperProfileAction.OnNavigateToUser,
             -> {
             }
 

@@ -2,14 +2,26 @@ package zed.rainxch.core.domain.model
 
 enum class AppTheme {
     DYNAMIC,
-    OCEAN,
-    PURPLE,
+    NORD,
+    CREAM,
     FOREST,
-    SLATE,
-    AMBER,
+    PLUM,
     ;
 
     companion object {
-        fun fromName(name: String?): AppTheme = entries.find { it.name == name } ?: OCEAN
+
+        private val LEGACY_MIGRATION = mapOf(
+            "OCEAN" to NORD,
+            "SLATE" to NORD,
+            "PURPLE" to PLUM,
+            "AMBER" to CREAM,
+        )
+
+        fun fromName(name: String?): AppTheme {
+            if (name.isNullOrEmpty()) return NORD
+            entries.firstOrNull { it.name == name }?.let { return it }
+            LEGACY_MIGRATION[name]?.let { return it }
+            return NORD
+        }
     }
 }

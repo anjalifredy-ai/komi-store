@@ -28,8 +28,11 @@ import zed.rainxch.core.domain.model.ContentWidth
 import zed.rainxch.core.domain.model.DiscoveryPlatform
 import zed.rainxch.core.domain.model.FontTheme
 import zed.rainxch.core.domain.model.InstallerType
+import zed.rainxch.core.domain.model.RestartReason
+import zed.rainxch.core.domain.model.ThemeMode
 import zed.rainxch.core.domain.model.TranslationProvider
 import zed.rainxch.core.domain.repository.TweaksRepository
+import kotlinx.coroutines.flow.combine
 import zed.rainxch.core.data.secure.safeDelete
 import zed.rainxch.core.data.secure.safeGet
 import zed.rainxch.core.data.secure.safeGetFlow
@@ -81,6 +84,32 @@ class TweaksRepositoryImpl(
 
     override fun getAmoledTheme(): Flow<Boolean> = gatedGetFlow(K_AMOLED, false)
     override suspend fun setAmoledTheme(enabled: Boolean) { migrationDeferred.await(); ksafe.safePut(K_AMOLED, enabled) }
+
+    override fun getThemeMode(): Flow<ThemeMode> =
+        combine(getIsDarkTheme(), getAmoledTheme()) { isDark, amoled ->
+            when {
+                isDark == null -> ThemeMode.SYSTEM
+                !isDark -> ThemeMode.LIGHT
+                amoled -> ThemeMode.AMOLED
+                else -> ThemeMode.DARK
+            }
+        }
+
+    override suspend fun setThemeMode(mode: ThemeMode) {
+        when (mode) {
+            ThemeMode.SYSTEM -> setDarkTheme(null)
+            ThemeMode.LIGHT -> { setDarkTheme(false); setAmoledTheme(false) }
+            ThemeMode.DARK -> { setDarkTheme(true); setAmoledTheme(false) }
+            ThemeMode.AMOLED -> { setDarkTheme(true); setAmoledTheme(true) }
+        }
+    }
+
+    override fun getOnboardingComplete(): Flow<Boolean> = gatedGetFlow(K_ONBOARDING_COMPLETE, false)
+
+    override suspend fun setOnboardingComplete(complete: Boolean) {
+        migrationDeferred.await()
+        ksafe.safePut(K_ONBOARDING_COMPLETE, complete)
+    }
 
     override fun getFontTheme(): Flow<FontTheme> =
         gatedGetFlow(K_FONT, "").map { FontTheme.fromName(it.ifEmpty { null }) }
@@ -187,9 +216,6 @@ class TweaksRepositoryImpl(
         migrationDeferred.await()
         ksafe.safePut(K_CONTENT_WIDTH, width.name)
     }
-
-    override fun getTelemetryEnabled(): Flow<Boolean> = gatedGetFlow(K_TELEMETRY_ENABLED, false)
-    override suspend fun setTelemetryEnabled(enabled: Boolean) { migrationDeferred.await(); ksafe.safePut(K_TELEMETRY_ENABLED, enabled) }
 
     override fun getTranslationProvider(): Flow<TranslationProvider> =
         gatedGetFlow(K_TRANSLATION_PROVIDER, "").map { TranslationProvider.fromName(it.ifEmpty { null }) }
@@ -388,7 +414,6 @@ class TweaksRepositoryImpl(
         MigrationEntry(booleanPreferencesKey("include_pre_releases"), K_INCLUDE_PRE_RELEASES),
         MigrationEntry(booleanPreferencesKey("hide_seen_enabled"), K_HIDE_SEEN_ENABLED),
         MigrationEntry(booleanPreferencesKey("scrollbar_enabled"), K_SCROLLBAR_ENABLED),
-        MigrationEntry(booleanPreferencesKey("telemetry_enabled"), K_TELEMETRY_ENABLED),
         MigrationEntry(stringPreferencesKey("translation_provider"), K_TRANSLATION_PROVIDER),
         MigrationEntry(stringPreferencesKey("youdao_app_key"), K_YOUDAO_APP_KEY),
         MigrationEntry(stringPreferencesKey("youdao_app_secret"), K_YOUDAO_APP_SECRET),
@@ -440,6 +465,29 @@ class TweaksRepositoryImpl(
         }
     }
 
+    override fun getNeedsRestartReasons(): Flow<Set<RestartReason>> =
+        gatedGetFlow<List<String>>(K_RESTART_REASONS, emptyList()).map { stored ->
+            stored.mapNotNull { name ->
+                runCatching { RestartReason.valueOf(name) }.getOrNull()
+            }.toSet()
+        }
+
+    override suspend fun addRestartReason(reason: RestartReason) {
+        migrationDeferred.await()
+        rmwLock.withLock {
+            val current = ksafe.safeGet<List<String>>(K_RESTART_REASONS, emptyList()).toSet()
+            if (reason.name in current) return@withLock
+            ksafe.safePut(K_RESTART_REASONS, (current + reason.name).toList())
+        }
+    }
+
+    override suspend fun clearRestartReasons() {
+        migrationDeferred.await()
+        rmwLock.withLock {
+            ksafe.safePut(K_RESTART_REASONS, emptyList<String>())
+        }
+    }
+
     companion object {
         private const val DEFAULT_UPDATE_CHECK_INTERVAL_HOURS = 6L
         private const val MIGRATION_MARKER = "__migrated_from_datastore_v1__"
@@ -458,7 +506,6 @@ class TweaksRepositoryImpl(
         private const val K_INCLUDE_PRE_RELEASES = "include_pre_releases"
         private const val K_HIDE_SEEN_ENABLED = "hide_seen_enabled"
         private const val K_SCROLLBAR_ENABLED = "scrollbar_enabled"
-        private const val K_TELEMETRY_ENABLED = "telemetry_enabled"
         private const val K_TRANSLATION_PROVIDER = "translation_provider"
         private const val K_YOUDAO_APP_KEY = "youdao_app_key"
         private const val K_YOUDAO_APP_SECRET = "youdao_app_secret"
@@ -479,6 +526,7 @@ class TweaksRepositoryImpl(
         private const val K_SHOW_ALL_PLATFORMS = "show_all_platforms"
         private const val K_BATTERY_OPT_PROMPT_DISMISSED = "battery_opt_prompt_dismissed"
         private const val K_LAST_SEEN_WHATS_NEW_VERSION_CODE = "last_seen_whats_new_version_code"
+        private const val K_ONBOARDING_COMPLETE = "onboarding_complete"
         private const val K_ANNOUNCEMENTS_DISMISSED_IDS = "announcements_dismissed_ids"
         private const val K_ANNOUNCEMENTS_ACKNOWLEDGED_IDS = "announcements_acknowledged_ids"
         private const val K_ANNOUNCEMENTS_MUTED_CATEGORIES = "announcements_muted_categories"
@@ -488,5 +536,6 @@ class TweaksRepositoryImpl(
         private const val K_FAVOURITES_SORT_RULE = "favourites_sort_rule"
         private const val K_CONTENT_WIDTH = "content_width"
         private const val K_CUSTOM_FORGE_HOSTS = "custom_forge_hosts"
+        private const val K_RESTART_REASONS = "needs_restart_reasons"
     }
 }

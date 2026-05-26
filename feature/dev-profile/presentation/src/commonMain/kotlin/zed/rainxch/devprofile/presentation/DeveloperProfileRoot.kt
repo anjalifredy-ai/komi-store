@@ -29,10 +29,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -47,16 +50,18 @@ import zed.rainxch.core.presentation.components.ScrollbarContainer
 import zed.rainxch.core.presentation.locals.LocalScrollbarEnabled
 import zed.rainxch.core.presentation.utils.arrowKeyScroll
 import zed.rainxch.devprofile.domain.model.RepoFilterType
+import zed.rainxch.devprofile.presentation.components.ContributionCalendarCard
 import zed.rainxch.devprofile.presentation.components.DeveloperRepoItem
 import zed.rainxch.devprofile.presentation.components.FilterSortControls
+import zed.rainxch.devprofile.presentation.components.IdentityRailCard
 import zed.rainxch.devprofile.presentation.components.ProfileInfoCard
-import zed.rainxch.devprofile.presentation.components.StatsRow
 import zed.rainxch.githubstore.core.presentation.res.*
 
 @Composable
 fun DeveloperProfileRoot(
     onNavigateBack: () -> Unit,
     onNavigateToDetails: (repoId: Long) -> Unit,
+    onNavigateToUser: (username: String) -> Unit,
     viewModel: DeveloperProfileViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -78,6 +83,13 @@ fun DeveloperProfileRoot(
                     val url = action.url.trim()
                     val allowed = url.startsWith("https://") || url.startsWith("http://")
                     if (allowed) uriHandler.openUri(url)
+                }
+
+                is DeveloperProfileAction.OnNavigateToUser -> {
+                    val username = action.username.trim().removePrefix("@")
+                    if (username.isNotBlank() && username != state.username) {
+                        onNavigateToUser(username)
+                    }
                 }
 
                 else -> {
@@ -145,8 +157,20 @@ fun DeveloperProfileScreen(
                             )
                         }
 
+                        if (!state.profile.isOrganization) {
+                            item {
+                                ContributionCalendarCard(
+                                    contributions = state.contributions,
+                                    isLoading = state.isLoadingContributions,
+                                )
+                            }
+                        }
+
                         item {
-                            StatsRow(profile = state.profile)
+                            IdentityRailCard(
+                                profile = state.profile,
+                                onAction = onAction,
+                            )
                         }
 
                         item {
@@ -211,15 +235,14 @@ fun DeveloperProfileScreen(
                             .align(Alignment.BottomCenter)
                             .padding(16.dp),
                     action = {
-                        TextButton(
+                        GhsButton(
                             onClick = {
                                 onAction(DeveloperProfileAction.OnRetry)
                             },
-                        ) {
-                            Text(
-                                text = stringResource(Res.string.retry),
-                            )
-                        }
+                            label = stringResource(Res.string.retry),
+                            variant = GhsButtonVariant.Text,
+                            size = GhsButtonSize.Sm,
+                        )
                     },
                     dismissAction = {
                         IconButton(
@@ -251,6 +274,7 @@ private fun EmptyReposContent(
     val message =
         when (filter) {
             RepoFilterType.WITH_RELEASES -> stringResource(Res.string.no_repos_with_releases)
+            RepoFilterType.WITH_INSTALLABLE -> stringResource(Res.string.no_repos_with_installable)
             RepoFilterType.INSTALLED -> stringResource(Res.string.no_installed_repos)
             RepoFilterType.FAVORITES -> stringResource(Res.string.no_favorite_repos)
         }

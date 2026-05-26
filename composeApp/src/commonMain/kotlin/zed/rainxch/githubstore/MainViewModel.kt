@@ -5,18 +5,19 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import zed.rainxch.core.domain.repository.AuthenticationState
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
 import zed.rainxch.core.domain.repository.RateLimitRepository
 import zed.rainxch.core.domain.repository.TweaksRepository
+import zed.rainxch.core.domain.repository.UserSessionRepository
 import zed.rainxch.core.domain.use_cases.SyncInstalledAppsUseCase
 
 class MainViewModel(
     private val tweaksRepository: TweaksRepository,
     private val installedAppsRepository: InstalledAppsRepository,
-    private val authenticationState: AuthenticationState,
+    private val userSessionRepository: UserSessionRepository,
     private val rateLimitRepository: RateLimitRepository,
     private val syncUseCase: SyncInstalledAppsUseCase,
 ) : ViewModel() {
@@ -25,7 +26,7 @@ class MainViewModel(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            authenticationState
+            userSessionRepository
                 .isUserLoggedIn()
                 .collect { isLoggedIn ->
                     _state.update { it.copy(isLoggedIn = isLoggedIn) }
@@ -75,6 +76,11 @@ class MainViewModel(
         }
 
         viewModelScope.launch {
+            val complete = tweaksRepository.getOnboardingComplete().first()
+            _state.update { it.copy(onboardingComplete = complete) }
+        }
+
+        viewModelScope.launch {
             tweaksRepository.getScrollbarEnabled().collect { enabled ->
                 _state.update { it.copy(isScrollbarEnabled = enabled) }
             }
@@ -101,7 +107,7 @@ class MainViewModel(
         }
 
         viewModelScope.launch {
-            authenticationState.sessionExpiredEvent.collect {
+            userSessionRepository.sessionExpiredEvent.collect {
                 _state.update { it.copy(showSessionExpiredDialog = true) }
             }
         }

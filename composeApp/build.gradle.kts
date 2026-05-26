@@ -60,8 +60,6 @@ kotlin {
             implementation(projects.feature.search.data)
             implementation(projects.feature.search.presentation)
 
-            implementation(projects.feature.profile.domain)
-            implementation(projects.feature.profile.data)
             implementation(projects.feature.profile.presentation)
 
             implementation(projects.feature.starred.domain)
@@ -170,5 +168,29 @@ compose.desktop {
                 appCategory = "Development"
             }
         }
+    }
+}
+
+tasks.register("printRuntimeDependencies") {
+    description = "Lists all runtime dependencies for licenses.json maintenance."
+    group = "verification"
+    val coordinatesProvider: Provider<List<String>> =
+        project.provider {
+            val cfg =
+                configurations.findByName("releaseRuntimeClasspath")
+                    ?: configurations.findByName("androidReleaseRuntimeClasspath")
+                    ?: error("No release runtime classpath configuration found.")
+            cfg.incoming.resolutionResult.allComponents
+                .asSequence()
+                .map { it.id }
+                .filterIsInstance<ModuleComponentIdentifier>()
+                .map { "${it.group}:${it.module}:${it.version}" }
+                .distinct()
+                .sorted()
+                .toList()
+        }
+    notCompatibleWithConfigurationCache("Resolves Android variant configurations at execution time.")
+    doLast {
+        coordinatesProvider.get().forEach { println(it) }
     }
 }

@@ -1,14 +1,16 @@
 package zed.rainxch.details.presentation.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,21 +23,20 @@ import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.contentColorFor
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -57,6 +58,13 @@ import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.core.domain.model.GithubAsset
 import zed.rainxch.core.domain.model.GithubUser
 import zed.rainxch.core.domain.util.AssetVariant
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
+import zed.rainxch.core.presentation.components.overlays.GhsBottomSheet
+import zed.rainxch.core.presentation.theme.shapes.WonkySquircleShape
+import zed.rainxch.core.presentation.theme.tokens.Radii
+import zed.rainxch.core.presentation.vocabulary.Squiggle
 import zed.rainxch.details.presentation.DetailsAction
 import zed.rainxch.githubstore.core.presentation.res.*
 import zed.rainxch.githubstore.core.presentation.res.Res
@@ -76,10 +84,7 @@ fun ReleaseAssetsPicker(
     showAllPlatforms: Boolean = false,
     crossPlatformAssets: List<GithubAsset> = emptyList(),
 ) {
-    // Decouple from `showAllPlatforms`: the toggle lives INSIDE the sheet,
-    // so disabling the open-card whenever the current branch is empty
-    // would lock the user out of flipping the setting back. Picker stays
-    // openable whenever either source has anything to show.
+
     val isPickerEnabled by remember(assetsList, crossPlatformAssets) {
         derivedStateOf {
             assetsList.isNotEmpty() || crossPlatformAssets.isNotEmpty()
@@ -110,38 +115,47 @@ fun ReleaseAssetsPicker(
     ) {
         Text(
             text = stringResource(Res.string.assets_title),
-            style = MaterialTheme.typography.labelLargeEmphasized,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 12.sp,
+            ),
             color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
-        OutlinedCard(
-            onClick = { onAction(DetailsAction.ToggleReleaseAssetsPicker) },
-            enabled = isPickerEnabled,
-            modifier = Modifier.fillMaxWidth(),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(Radii.row)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline,
+                    shape = Radii.row,
+                )
+                .background(MaterialTheme.colorScheme.surface)
+                .clickable(enabled = isPickerEnabled) {
+                    onAction(DetailsAction.ToggleReleaseAssetsPicker)
+                }
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .heightIn(min = 36.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .heightIn(min = 36.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = selectedAsset?.name ?: stringResource(Res.string.no_assets_selected),
-                    style = MaterialTheme.typography.titleSmall,
+            Text(
+                text = selectedAsset?.name ?: stringResource(Res.string.no_assets_selected),
+                style = MaterialTheme.typography.titleSmall.copy(
                     fontWeight = FontWeight.SemiBold,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    imageVector = Icons.Default.UnfoldMore,
-                    contentDescription = stringResource(Res.string.select_version),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Icons.Default.UnfoldMore,
+                contentDescription = stringResource(Res.string.select_version),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }
@@ -164,7 +178,6 @@ private fun ReleaseAssetsItemsPicker(
 ) {
     if (!showPicker) return
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
     var showInfoDialog by rememberSaveable { mutableStateOf(false) }
 
     ReleaseAssetsAboutDialog(
@@ -172,36 +185,29 @@ private fun ReleaseAssetsItemsPicker(
         onDismiss = { showInfoDialog = false },
     )
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        modifier = modifier,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding(),
-        ) {
+    GhsBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(Res.string.assets_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .weight(1f),
-                )
+                Column(modifier = Modifier.weight(1f).padding(vertical = 6.dp)) {
+                    Text(
+                        text = stringResource(Res.string.assets_title),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 20.sp,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Squiggle()
+                }
                 IconButton(onClick = { showInfoDialog = true }) {
-                    Icon(imageVector = Icons.Outlined.Info, contentDescription = stringResource(Res.string.icon_content_description_info))
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = stringResource(Res.string.icon_content_description_info),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
-            // "Pinned to: …  [Unpin]" hint, only when the user actually
-            // has a pin. Surfaces both the current pin and a one-tap
-            // unpin affordance — the only place in the app where a pin
-            // can be removed without picking a different one.
             if (!pinnedVariant.isNullOrBlank()) {
                 Row(
                     modifier =
@@ -216,53 +222,48 @@ private fun ReleaseAssetsItemsPicker(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
                     )
-                    androidx.compose.material3.TextButton(onClick = onUnpin) {
-                        Text(stringResource(Res.string.variant_picker_unpin))
-                    }
+                    GhsButton(
+                        onClick = onUnpin,
+                        label = stringResource(Res.string.variant_picker_unpin),
+                        variant = GhsButtonVariant.Text,
+                        size = GhsButtonSize.Sm,
+                    )
                 }
             }
 
-            // Cross-platform toggle. Persisted globally — flipping here
-            // changes every Details screen's picker behaviour for this
-            // user. Off = current-OS assets only; On = grouped sections
-            // for Android / Windows / macOS / Linux.
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+                    .clip(Radii.row)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = Radii.row,
+                    )
+                    .background(MaterialTheme.colorScheme.surface)
+                    .clickable(onClick = { onToggleShowAllPlatforms(!showAllPlatforms) })
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .clickable(onClick = { onToggleShowAllPlatforms(!showAllPlatforms) })
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Devices,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.size(12.dp))
-                    Text(
-                        text = stringResource(Res.string.show_all_platforms_label),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
-                    )
-                    androidx.compose.material3.Switch(
-                        checked = showAllPlatforms,
-                        onCheckedChange = onToggleShowAllPlatforms,
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Outlined.Devices,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.size(12.dp))
+                Text(
+                    text = stringResource(Res.string.show_all_platforms_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                androidx.compose.material3.Switch(
+                    checked = showAllPlatforms,
+                    onCheckedChange = onToggleShowAllPlatforms,
+                )
             }
 
-            // Hoisted out of the LazyListScope below: `LazyColumn { … }`
-                // body is not a @Composable context, so `remember` calls have
-                // to live in the enclosing Column instead.
             val groups = remember(crossPlatformAssets) {
                 crossPlatformAssets
                     .groupBy {
@@ -279,16 +280,9 @@ private fun ReleaseAssetsItemsPicker(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                // Grouped path only when the toggle is on AND the release
-                // has platform-classifiable assets. If toggle is on but
-                // `assetPlatformOf` rejected every asset (e.g. release
-                // ships only .zip bundles / extensionless binaries), we
-                // fall through to the OFF-mode `assetsList` render so
-                // the user still sees the current-platform installables
-                // instead of an empty sheet.
+
                 if (showAllPlatforms && groups.isNotEmpty()) {
-                    // Order: current-platform section first (it's the
-                    // primary install target), then the others.
+
                     val sectionOrder =
                         listOf(
                             zed.rainxch.core.domain.model.DiscoveryPlatform.Android to Res.string.platform_section_android,
@@ -358,30 +352,37 @@ private fun ReleaseAssetsAboutDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     properties: DialogProperties = DialogProperties(),
-    containerColor: Color = AlertDialogDefaults.containerColor,
-    shape: Shape = AlertDialogDefaults.shape,
 ) {
     if (!showDialog) return
 
     BasicAlertDialog(onDismissRequest = onDismiss, modifier = modifier, properties = properties) {
-        Surface(
-            color = containerColor,
-            contentColor = contentColorFor(containerColor),
-            shape = shape,
+        Box(
+            modifier = Modifier
+                .clip(WonkySquircleShape.Dialog)
+                .background(MaterialTheme.colorScheme.surface)
+                .border(
+                    width = 1.5.dp,
+                    color = MaterialTheme.colorScheme.outline,
+                    shape = WonkySquircleShape.Dialog,
+                )
+                .padding(24.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
+            Column {
                 Text(
                     text = stringResource(Res.string.multiple_assets_info_dialog_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = AlertDialogDefaults.titleContentColor,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 20.sp,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
+                Spacer(Modifier.size(6.dp))
+                Squiggle()
+                Spacer(Modifier.size(12.dp))
                 Text(
                     text = stringResource(Res.string.multiple_assets_info_dialog_text),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = AlertDialogDefaults.textContentColor,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

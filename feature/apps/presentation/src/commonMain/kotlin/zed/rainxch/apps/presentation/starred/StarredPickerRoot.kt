@@ -18,8 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -30,8 +28,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +39,10 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.apps.presentation.starred.components.StarredCandidateRow
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
+import zed.rainxch.core.presentation.components.inputs.GhsTextField
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.navigate_back
@@ -90,7 +90,10 @@ private fun StarredPickerScreen(
                 title = {
                     Text(
                         text = stringResource(Res.string.starred_picker_title),
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
                     )
                 },
                 navigationIcon = {
@@ -165,18 +168,13 @@ private fun ContentBody(
         }
 
         Spacer(Modifier.height(12.dp))
-        TextField(
+        GhsTextField(
             value = state.searchQuery,
             onValueChange = { onAction(StarredPickerAction.OnSearchChange(it)) },
             modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text(stringResource(Res.string.starred_picker_search_hint)) },
-            leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+            placeholder = stringResource(Res.string.starred_picker_search_hint),
+            leadingIcon = Icons.Filled.Search,
             singleLine = true,
-            shape = RoundedCornerShape(16.dp),
-            colors = TextFieldDefaults.colors(
-                focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-            ),
         )
 
         Spacer(Modifier.height(8.dp))
@@ -273,13 +271,12 @@ private fun RateLimitedBanner(onResume: () -> Unit) {
             color = MaterialTheme.colorScheme.error,
             modifier = Modifier.weight(1f),
         )
-        Button(
+        GhsButton(
             onClick = onResume,
-            colors = ButtonDefaults.buttonColors(),
-            shape = RoundedCornerShape(12.dp),
-        ) {
-            Text(stringResource(Res.string.starred_picker_resume))
-        }
+            label = stringResource(Res.string.starred_picker_resume),
+            variant = GhsButtonVariant.Primary,
+            size = GhsButtonSize.Sm,
+        )
     }
 }
 

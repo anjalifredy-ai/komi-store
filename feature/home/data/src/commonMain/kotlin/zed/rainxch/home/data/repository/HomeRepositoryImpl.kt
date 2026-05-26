@@ -27,6 +27,8 @@ import zed.rainxch.core.data.cache.CacheManager
 import zed.rainxch.core.data.cache.CacheManager.CacheTtl.HOME_REPOS
 import zed.rainxch.core.data.dto.GithubRepoNetworkModel
 import zed.rainxch.core.data.dto.GithubRepoSearchResponse
+import zed.rainxch.core.data.dto.RepoByIdNetwork
+import zed.rainxch.core.domain.model.GithubUser
 import zed.rainxch.core.data.mappers.toSummary
 import zed.rainxch.core.data.network.GitHubClientProvider
 import zed.rainxch.core.data.network.executeRequest
@@ -68,9 +70,6 @@ class HomeRepositoryImpl(
         return "home:$category:$token:page$page"
     }
 
-    // Mirror cache only ships per-platform snapshots and a merged "all" file.
-    // For 2-3 platform selections we pull the merged set and filter by
-    // intersection on the client side rather than fetching N snapshots.
     private suspend fun loadCachedReposForSet(
         platforms: Set<DiscoveryPlatform>,
         fetchSingle: suspend (DiscoveryPlatform) -> CachedRepoResponse?,
@@ -545,8 +544,7 @@ class HomeRepositoryImpl(
         return when {
             topics.isEmpty() -> baseQuery
             topics.size == 1 -> "$baseQuery topic:${topics.first()}"
-            // Classic REST search doesn't support parenthesized qualifier grouping.
-            // Repeat the full base query per topic joined with OR.
+
             else -> topics.joinToString(separator = " OR ") { "($baseQuery topic:$it)" }
         }
     }
@@ -560,7 +558,6 @@ class HomeRepositoryImpl(
             DiscoveryPlatform.Linux -> "linux"
         }
 
-    /** Treat `All` and a fully-covering set as "no filter" (empty set). */
     private fun Set<DiscoveryPlatform>.normalize(): Set<DiscoveryPlatform> {
         if (contains(DiscoveryPlatform.All)) return emptySet()
         val real = filter { it != DiscoveryPlatform.All }.toSet()
@@ -668,5 +665,48 @@ class HomeRepositoryImpl(
     @Serializable
     private data class AssetNetworkModel(
         val name: String,
+    )
+
+    override suspend fun getRepositoryById(id: Long): GithubRepoSummary? {
+        val cacheKey = "home:repo_id:$id"
+        cacheManager.get<GithubRepoSummary>(cacheKey)?.let { return it }
+        return try {
+            val result = httpClient
+                .executeRequest<RepoByIdNetwork> {
+                    get("/repositories/$id") {
+                        header("Accept", "application/vnd.github+json")
+                    }
+                }.getOrThrow()
+                .toSummary()
+            cacheManager.put(cacheKey, result, HOME_REPOS)
+            result
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            cacheManager.getStale<GithubRepoSummary>(cacheKey)?.let { return it }
+            logger.warn("getRepositoryById($id) failed: ${e.message}")
+            null
+        }
+    }
+
+    private fun RepoByIdNetwork.toSummary(): GithubRepoSummary = GithubRepoSummary(
+        id = id,
+        name = name,
+        fullName = fullName,
+        owner = GithubUser(
+            id = owner.id,
+            login = owner.login,
+            avatarUrl = owner.avatarUrl,
+            htmlUrl = owner.htmlUrl,
+        ),
+        description = description,
+        defaultBranch = defaultBranch,
+        htmlUrl = htmlUrl,
+        stargazersCount = stars,
+        forksCount = forks,
+        language = language,
+        topics = topics.orEmpty(),
+        releasesUrl = "https://api.github.com/repos/$fullName/releases{/id}",
+        updatedAt = updatedAt,
     )
 }

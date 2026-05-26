@@ -8,7 +8,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -34,9 +41,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import zed.rainxch.core.presentation.vocabulary.Squiggle
 import com.mikepenz.markdown.compose.Markdown
 import com.mikepenz.markdown.model.ImageTransformer
 import com.mikepenz.markdown.model.rememberMarkdownState
@@ -47,9 +57,7 @@ import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.parser.MarkdownParser
 import org.jetbrains.compose.resources.stringResource
 import zed.rainxch.core.domain.util.applyThemeAwareImages
-import zed.rainxch.details.presentation.components.TranslationControls
 import zed.rainxch.details.presentation.markdown.githubStoreMarkdownComponents
-import zed.rainxch.details.presentation.model.TranslationState
 import zed.rainxch.details.presentation.utils.MarkdownImageTransformer
 import zed.rainxch.details.presentation.utils.rememberMarkdownColors
 import zed.rainxch.details.presentation.utils.rememberMarkdownTypography
@@ -65,23 +73,16 @@ fun LazyListScope.about(
     collapsedHeight: Dp,
     measuredHeightPx: Float?,
     onMeasured: (Float) -> Unit,
-    translationState: TranslationState,
-    onTranslateClick: () -> Unit,
-    onLanguagePickerClick: () -> Unit,
-    onToggleTranslation: () -> Unit,
+    onReadMore: (() -> Unit)? = null,
 ) {
     item {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(Modifier.height(20.dp))
 
-        Spacer(Modifier.height(16.dp))
-
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -89,11 +90,12 @@ fun LazyListScope.about(
             ) {
                 Text(
                     text = stringResource(Res.string.about_this_app),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 22.sp,
+                    ),
                     color = MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.Bold,
                 )
-
                 readmeLanguage?.let {
                     Text(
                         text = it,
@@ -102,23 +104,13 @@ fun LazyListScope.about(
                     )
                 }
             }
-
-            TranslationControls(
-                translationState = translationState,
-                onTranslateClick = onTranslateClick,
-                onLanguagePickerClick = onLanguagePickerClick,
-                onToggleTranslation = onToggleTranslation,
-            )
+            Squiggle()
         }
+        Spacer(Modifier.height(8.dp))
     }
 
     item(key = "about_markdown") {
-        val raw =
-            if (translationState.isShowingTranslation && translationState.translatedText != null) {
-                translationState.translatedText
-            } else {
-                readmeMarkdown
-            }
+        val raw = readmeMarkdown
         val isDark = androidx.compose.foundation.isSystemInDarkTheme()
         val probeClient = org.koin.compose.koinInject<io.ktor.client.HttpClient>(
             qualifier = org.koin.core.qualifier.named("test"),
@@ -131,15 +123,13 @@ fun LazyListScope.about(
             rawMarkdown = raw,
             isDark = isDark,
             isExpanded = isExpanded,
-            onToggleExpanded = onToggleExpanded,
+            onToggleExpanded = onReadMore ?: onToggleExpanded,
             imageTransformer = imageTransformer,
             collapsedHeight = collapsedHeight,
             measuredHeightPx = measuredHeightPx,
             onMeasured = onMeasured,
             fadeColor = MaterialTheme.colorScheme.background,
-            modifier =
-                Modifier
-                    .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
@@ -161,23 +151,10 @@ fun ExpandableMarkdownContent(
     val colors = rememberMarkdownColors()
     val typography = rememberMarkdownTypography()
 
-    // Pre-process markdown off the main thread. The theme-aware image rewrite
-    // is regex-heavy; running it inside `remember { ... }` happened on the
-    // composition thread (typically Main) and contributed to the visible
-    // freeze on first render and theme toggle. We launch it on Default and
-    // gate rendering on completion via `fullChunks` being non-null.
-    //
-    // We split the full body into ~4 000-char chunks (kept whole around
-    // code fences). Chunk 0 doubles as the collapsed preview; subsequent
-    // chunks stream in one frame at a time once the user taps Expand.
-    // Crucially, chunk 0 stays mounted across collapse → expand, so the
-    // transition is a height grow rather than a content swap — no flicker.
     var fullChunks by remember(rawMarkdown, isDark) { mutableStateOf<List<String>?>(null) }
     LaunchedEffect(rawMarkdown, isDark) {
         val processed = withContext(Dispatchers.Default) {
-            // Theme-aware image substitution first, then split adjacent
-            // image-link rows into their own paragraphs so badge stacks
-            // render as block-level images (no inline-overlap).
+
             val themed = applyThemeAwareImages(rawMarkdown, isDark)
             zed.rainxch.core.domain.util.separateAdjacentImageLinks(themed)
         }
@@ -187,9 +164,6 @@ fun ExpandableMarkdownContent(
         fullChunks = chunks
     }
 
-    // Parser + flavour are heavy to construct and identical across recompositions;
-    // hoist them once so they survive content / theme / scroll churn. The Markdown
-    // lib parses lazily on Dispatchers.Default once handed a fresh MarkdownState.
     val flavour = remember { GFMFlavourDescriptor() }
     val parser = remember(flavour) { MarkdownParser(flavour) }
     val components = remember(isDark, imageTransformer) {
@@ -246,56 +220,61 @@ fun ExpandableMarkdownContent(
 
             if (!isExpanded && needsExpansion) {
                 Box(
-                    modifier =
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .height(80.dp)
-                            .background(
-                                Brush.verticalGradient(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
                                     0f to fadeColor.copy(alpha = 0f),
+                                    0.35f to fadeColor.copy(alpha = 0.10f),
+                                    0.6f to fadeColor.copy(alpha = 0.35f),
+                                    0.8f to fadeColor.copy(alpha = 0.7f),
                                     1f to fadeColor,
                                 ),
                             ),
+                        ),
                 )
             }
         }
 
         if (needsExpansion) {
-            TextButton(
-                onClick = onToggleExpanded,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.onSurface)
+                    .clickable(onClick = onToggleExpanded)
+                    .padding(horizontal = 22.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text =
-                        if (isExpanded) {
-                            stringResource(Res.string.show_less)
-                        } else {
-                            stringResource(Res.string.read_more)
-                        },
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    text = if (isExpanded) {
+                        stringResource(Res.string.show_less)
+                    } else {
+                        stringResource(Res.string.read_more)
+                    },
+                    style = MaterialTheme.typography.titleSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    color = MaterialTheme.colorScheme.surface,
                 )
+                if (!isExpanded) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
     }
 }
 
-/**
- * Renders chunked markdown progressively. Chunk 0 is always mounted
- * (used as the collapsed-state preview, clipped by the parent's
- * `Modifier.height(collapsedHeight)` modifier). When `isExpanded` flips
- * true, subsequent chunks stream in one frame at a time without
- * unmounting / remounting chunk 0 — that stable identity is what kills
- * the previous expand-time flicker.
- *
- * Each chunk is its own `Markdown(...)` composable with its own
- * `MarkdownState` (parser runs on `Dispatchers.Default` per the
- * mikepenz lib). The "one per frame" cadence keeps composition cost
- * predictable instead of dropping the entire body's compose pass on
- * Main in a single 4-second hit (observed Davey on a kubernetes-sized
- * README before this change).
- */
 @Composable
 internal fun ProgressiveMarkdown(
     isExpanded: Boolean,
@@ -325,15 +304,11 @@ internal fun ProgressiveMarkdown(
         return
     }
 
-    // Counter starts at 1 so chunk 0 (the natural preview) renders
-    // immediately for the collapsed view. Once the user expands, the
-    // remaining chunks stream in one frame at a time.
     var renderedCount by remember(rawKey) { mutableStateOf(1) }
     LaunchedEffect(rawKey, isExpanded, chunks.size) {
         if (!isExpanded) return@LaunchedEffect
         while (renderedCount < chunks.size) {
-            // Yield to the frame so the previously-added chunk has a chance
-            // to compose + layout + draw before the next chunk arrives.
+
             kotlinx.coroutines.yield()
             renderedCount++
         }

@@ -13,8 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Update
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenu
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -57,11 +57,19 @@ fun LazyListScope.header(
                 release = state.selectedRelease,
                 repository = state.repository,
                 installedApp = state.installedApp,
+                stats = state.stats,
                 downloadStage = state.downloadStage,
                 downloadProgress = state.downloadProgressPercent,
                 isCurrentUserOwner = state.isCurrentUserOwner,
                 onPlatformClick = { platform ->
                     onAction(DetailsAction.OnPlatformChipClick(platform))
+                },
+                onOwnerClick = {
+                    onAction(
+                        DetailsAction.OpenDeveloperProfile(
+                            state.repository.owner.login,
+                        ),
+                    )
                 },
             )
         }
@@ -80,14 +88,6 @@ fun LazyListScope.header(
         }
     }
 
-    // Status card replaces the pickers + install button in three cases:
-    //   1. releases fetch failed — show error + Retry
-    //   2. retry in flight — show spinner
-    //   3. repo truly has no releases — show "no releases published" empty state
-    // Initial page load (isLoading) is intentionally excluded — the top-level
-    // loading spinner covers it, no need to double up. Same for repository
-    // not loaded yet: the release-specific states only make sense once we
-    // know the repo exists (matches the VM's retryReleases() guard).
     val releasesStatus: ReleasesStatus? =
         when {
             state.repository == null -> null
@@ -106,7 +106,7 @@ fun LazyListScope.header(
             )
         }
     } else {
-        // versions type list
+
         if (state.allReleases.isNotEmpty()) {
             item {
                 VersionTypePicker(
@@ -117,7 +117,6 @@ fun LazyListScope.header(
             }
         }
 
-        // version and installable release
         if (state.allReleases.isNotEmpty() || state.installableAssets.isNotEmpty()) {
             item {
                 Row(
@@ -125,9 +124,7 @@ fun LazyListScope.header(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Memoize the platform-classifiable subset of release
-                    // assets so each Header recompose (scroll, animation,
-                    // unrelated state change) doesn't re-run the filter.
+
                     val crossPlatformAssets =
                         androidx.compose.runtime.remember(state.selectedRelease) {
                             state.selectedRelease
@@ -138,10 +135,7 @@ fun LazyListScope.header(
                                 }
                                 .orEmpty()
                         }
-                    // Refresh pinned label from the currently matched asset
-                    // — stored value may carry a stale qualifier-counter
-                    // prefix (e.g. `beta.24-arm64-v8a`) from when the pin
-                    // was first set. Issue #612.
+
                     val pinnedVariantLabel =
                         state.installedApp?.preferredAssetVariant?.let { stored ->
                             state.primaryAsset?.name?.let { name ->
@@ -171,16 +165,9 @@ fun LazyListScope.header(
         }
 
         item {
-            // Inspect button only surfaces once the package is genuinely
-            // installed on device (`isReallyInstalled()` filters out
-            // pending-install rows whose `installedApp` is non-null but
-            // the system hasn't confirmed the install). This avoids
-            // popping the icon in at the exact frame the system install
-            // prompt appears, which is the user's peak-attention moment.
+
             val canInspectApk = state.installedApp?.isReallyInstalled() == true
-            // Even when visible, the coachmark animation only fires
-            // during a calm moment — never while a download or install
-            // is mid-flight, never with the inspect sheet already open.
+
             val coachmarkActive =
                 state.isApkInspectCoachmarkPending &&
                     canInspectApk &&
@@ -216,96 +203,48 @@ fun LazyListScope.header(
                     }
                 }
 
-            DropdownMenu(
+            GhsDropdownMenu(
                 expanded = state.isInstallDropdownExpanded,
                 onDismissRequest = {
                     onAction(DetailsAction.OnToggleInstallDropdown)
                 },
                 offset = DpOffset(x = 0.dp, y = 20.dp),
             ) {
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(
-                                text = stringResource(Res.string.open_in_obtainium),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = stringResource(Res.string.obtainium_description),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    onClick = {
-                        onAction(DetailsAction.OpenInObtainium)
-                    },
+                GhsDropdownMenuItem(
+                    text = stringResource(Res.string.open_in_obtainium),
+                    subtitle = stringResource(Res.string.obtainium_description),
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Update,
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     },
+                    onClick = { onAction(DetailsAction.OpenInObtainium) },
                 )
-
-                Spacer(Modifier.height(8.dp))
-
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(
-                                text = stringResource(Res.string.inspect_with_appmanager),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = stringResource(Res.string.appmanager_description),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    onClick = {
-                        onAction(DetailsAction.OpenInAppManager)
-                    },
+                GhsDropdownMenuItem(
+                    text = stringResource(Res.string.inspect_with_appmanager),
+                    subtitle = stringResource(Res.string.appmanager_description),
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Security,
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     },
+                    onClick = { onAction(DetailsAction.OpenInAppManager) },
                 )
-
-                Spacer(Modifier.height(8.dp))
-
-                DropdownMenuItem(
-                    text = {
-                        Column {
-                            Text(
-                                text = stringResource(Res.string.open_with_external_installer),
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                text = stringResource(Res.string.external_installer_description),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                    onClick = {
-                        onAction(DetailsAction.InstallWithExternalApp)
-                    },
+                GhsDropdownMenuItem(
+                    text = stringResource(Res.string.open_with_external_installer),
+                    subtitle = stringResource(Res.string.external_installer_description),
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                             contentDescription = null,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     },
+                    onClick = { onAction(DetailsAction.InstallWithExternalApp) },
                 )
             }
         }

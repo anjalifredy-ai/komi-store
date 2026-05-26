@@ -138,12 +138,6 @@ sealed interface TweaksAction {
 
     data object OnHiddenRepositoriesClick : TweaksAction
 
-    data class OnTelemetryToggled(
-        val enabled: Boolean,
-    ) : TweaksAction
-
-    data object OnResetAnalyticsId : TweaksAction
-
     data class OnTranslationProviderSelected(
         val provider: TranslationProvider,
     ) : TweaksAction
@@ -200,10 +194,6 @@ sealed interface TweaksAction {
         val tag: String?,
     ) : TweaksAction
 
-    /**
-     * User picked a UI language. `tag == null` means "follow system
-     * locale" — cleared persisted preference.
-     */
     data class OnAppLanguageSelected(
         val tag: String?,
     ) : TweaksAction
@@ -212,12 +202,6 @@ sealed interface TweaksAction {
 
     data object OnDismissBatteryOptimizationCard : TweaksAction
 
-    /**
-     * Re-evaluates whether the battery-optimization card should still
-     * show. Fired on Tweaks resume so the card disappears immediately
-     * after the user grants the exemption from the system Settings
-     * screen.
-     */
     data object OnReevaluateBatteryOptimizationCard : TweaksAction
 
     data object OnOpenCustomForgesDialog : TweaksAction
@@ -225,4 +209,34 @@ sealed interface TweaksAction {
     data class OnCustomForgeDraftChanged(val draft: String) : TweaksAction
     data object OnAddCustomForge : TweaksAction
     data class OnRemoveCustomForge(val host: String) : TweaksAction
+
+    data class OnDiscoveryPlatformToggled(
+        val platform: zed.rainxch.core.domain.model.DiscoveryPlatform,
+    ) : TweaksAction
+
+    data object OnRestartNowClick : TweaksAction
+    data object OnRestartLaterClick : TweaksAction
+
+    data class OnMasterProxyTypeSelected(val type: ProxyType) : TweaksAction
+    data class OnMasterProxyHostChanged(val host: String) : TweaksAction
+    data class OnMasterProxyPortChanged(val port: String) : TweaksAction
+    data class OnMasterProxyUsernameChanged(val username: String) : TweaksAction
+    data class OnMasterProxyPasswordChanged(val password: String) : TweaksAction
+    data object OnMasterProxyPasswordVisibilityToggle : TweaksAction
+    data object OnMasterProxySave : TweaksAction
+    data object OnMasterProxyTest : TweaksAction
+
+    data class OnMasterProxyPasteUrl(
+        val type: ProxyType,
+        val host: String,
+        val port: Int,
+        val username: String?,
+        val password: String?,
+    ) : TweaksAction
+
+    data class OnScopeUseMainToggled(val scope: ProxyScope, val useMain: Boolean) : TweaksAction
+
+    data object OnClearSeenHistoryRequest : TweaksAction
+    data object OnClearSeenHistoryDismiss : TweaksAction
+    data object OnClearSeenHistoryConfirm : TweaksAction
 }

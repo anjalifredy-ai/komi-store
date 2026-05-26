@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -72,30 +72,27 @@ fun PermissionRationaleScreen(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
+                GhsButton(
                     onClick = { onAction(ExternalImportAction.OnPermissionDenied(sdkInt)) },
-                ) {
-                    Text(stringResource(Res.string.external_import_permission_not_now))
-                }
-                Button(onClick = {
-                    scope.launch {
-                        onAction(ExternalImportAction.OnRequestPermission)
-                        // QUERY_ALL_PACKAGES is install-time only on stock Android.
-                        // Either we already have visibility (manifest grant honoured)
-                        // → proceed Granted; or we don't → proceed Denied and let the
-                        // scanner's heuristic-degraded path handle it. We never
-                        // dispatch Granted optimistically — that would lie to
-                        // telemetry and skip the degraded-path UX in EmptyStateScreen.
-                        val action = if (requester.isGranted()) {
-                            ExternalImportAction.OnPermissionGranted(sdkInt)
-                        } else {
-                            ExternalImportAction.OnPermissionDenied(sdkInt)
+                    label = stringResource(Res.string.external_import_permission_not_now),
+                    variant = GhsButtonVariant.Outline,
+                )
+                GhsButton(
+                    onClick = {
+                        scope.launch {
+                            onAction(ExternalImportAction.OnRequestPermission)
+
+                            val action = if (requester.isGranted()) {
+                                ExternalImportAction.OnPermissionGranted(sdkInt)
+                            } else {
+                                ExternalImportAction.OnPermissionDenied(sdkInt)
+                            }
+                            onAction(action)
                         }
-                        onAction(action)
-                    }
-                }) {
-                    Text(stringResource(Res.string.external_import_permission_continue))
-                }
+                    },
+                    label = stringResource(Res.string.external_import_permission_continue),
+                    variant = GhsButtonVariant.Primary,
+                )
             }
         }
     }

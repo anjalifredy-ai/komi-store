@@ -25,17 +25,17 @@ import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
+import zed.rainxch.core.presentation.components.inputs.GhsTextField
+import zed.rainxch.core.presentation.components.overlays.GhsBottomSheet
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -51,15 +51,6 @@ import zed.rainxch.apps.presentation.AppsState
 import zed.rainxch.apps.presentation.model.GithubAssetUi
 import zed.rainxch.githubstore.core.presentation.res.*
 
-/**
- * Per-app advanced settings sheet for monorepo support. Shows:
- *  - Asset filter (regex) text field with inline validation
- *  - Fall-back-to-older-releases toggle
- *  - **Live preview** of which assets in the latest matching release the
- *    current draft would resolve to. This is the killer UX touch — users
- *    can iterate on the regex and immediately see the effect without
- *    having to save and run an update check.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedAppSettingsBottomSheet(
@@ -67,17 +58,14 @@ fun AdvancedAppSettingsBottomSheet(
     onAction: (AppsAction) -> Unit,
 ) {
     val app = state.advancedSettingsApp ?: return
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(
+    GhsBottomSheet(
         onDismissRequest = { onAction(AppsAction.OnDismissAdvancedSettings) },
-        sheetState = sheetState,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp),
+                .fillMaxWidth(),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -112,48 +100,36 @@ fun AdvancedAppSettingsBottomSheet(
 
             Spacer(Modifier.height(20.dp))
 
-            // === Asset filter ===
-            OutlinedTextField(
+            val advancedSupporting = when {
+                state.advancedFilterError != null ->
+                    stringResource(Res.string.asset_filter_invalid)
+                else -> stringResource(Res.string.asset_filter_help)
+            }
+            GhsTextField(
                 value = state.advancedFilterDraft,
                 onValueChange = { onAction(AppsAction.OnAdvancedFilterChanged(it)) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(Res.string.asset_filter_label)) },
-                placeholder = { Text(stringResource(Res.string.asset_filter_placeholder)) },
-                leadingIcon = {
-                    Icon(Icons.Default.FilterAlt, contentDescription = null)
-                },
+                label = stringResource(Res.string.asset_filter_label),
+                placeholder = stringResource(Res.string.asset_filter_placeholder),
+                leadingIcon = Icons.Default.FilterAlt,
                 trailingIcon = {
                     if (state.advancedFilterDraft.isNotEmpty()) {
-                        TextButton(onClick = { onAction(AppsAction.OnAdvancedClearFilter) }) {
-                            Text(stringResource(Res.string.clear))
-                        }
+                        GhsButton(
+                            onClick = { onAction(AppsAction.OnAdvancedClearFilter) },
+                            label = stringResource(Res.string.clear),
+                            variant = GhsButtonVariant.Text,
+                            size = GhsButtonSize.Sm,
+                        )
                     }
                 },
                 singleLine = true,
                 isError = state.advancedFilterError != null,
-                supportingText = {
-                    Text(
-                        text =
-                            when {
-                                state.advancedFilterError != null ->
-                                    stringResource(Res.string.asset_filter_invalid)
-                                else -> stringResource(Res.string.asset_filter_help)
-                            },
-                        color =
-                            if (state.advancedFilterError != null) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                    )
-                },
+                supportingText = advancedSupporting,
                 enabled = !state.advancedSavingFilter,
-                shape = RoundedCornerShape(12.dp),
             )
 
             Spacer(Modifier.height(12.dp))
 
-            // === Fallback toggle ===
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -185,17 +161,6 @@ fun AdvancedAppSettingsBottomSheet(
             )
             Spacer(Modifier.height(16.dp))
 
-            // === Preferred variant row ===
-            // Tappable row that opens the variant picker dialog. Shows
-            // the currently-pinned variant tag (or "Auto" when none),
-            // and warns the user when the pin has gone stale.
-            //
-            // Cross-link copy: a one-liner above the row clarifies
-            // the *relationship* between the filter (which assets are
-            // even considered) and the variant pin (which of the
-            // matching assets gets installed) — these are the two
-            // axes a user is actually adjusting when they wonder why
-            // an update grabbed the wrong file.
             Text(
                 text = stringResource(Res.string.advanced_filter_variant_relation),
                 style = MaterialTheme.typography.bodySmall,
@@ -214,7 +179,6 @@ fun AdvancedAppSettingsBottomSheet(
             )
             Spacer(Modifier.height(16.dp))
 
-            // === Live preview ===
             PreviewSection(
                 isLoading = state.advancedPreviewLoading,
                 matchedAssets = state.advancedPreviewMatched,
@@ -225,37 +189,25 @@ fun AdvancedAppSettingsBottomSheet(
 
             Spacer(Modifier.height(20.dp))
 
-            // === Save / cancel buttons ===
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedButton(
+                GhsButton(
                     onClick = { onAction(AppsAction.OnDismissAdvancedSettings) },
+                    label = stringResource(Res.string.cancel),
+                    variant = GhsButtonVariant.Outline,
                     enabled = !state.advancedSavingFilter,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Text(stringResource(Res.string.cancel))
-                }
-                FilledTonalButton(
+                )
+                GhsButton(
                     onClick = { onAction(AppsAction.OnAdvancedSaveFilter) },
+                    label = stringResource(Res.string.advanced_save),
+                    variant = GhsButtonVariant.Tonal,
                     enabled = !state.advancedSavingFilter && state.advancedFilterError == null,
+                    loading = state.advancedSavingFilter,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    if (state.advancedSavingFilter) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                        )
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Text(
-                        text = stringResource(Res.string.advanced_save),
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                )
             }
         }
     }

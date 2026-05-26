@@ -2,17 +2,22 @@ package zed.rainxch.githubstore.app.di
 
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import zed.rainxch.apps.presentation.AppsViewModel
 import zed.rainxch.apps.presentation.import.ExternalImportViewModel
 import zed.rainxch.apps.presentation.starred.StarredPickerViewModel
 import zed.rainxch.auth.presentation.AuthenticationViewModel
 import zed.rainxch.details.presentation.DetailsViewModel
+import zed.rainxch.details.presentation.about.DetailsAboutViewModel
+import zed.rainxch.details.presentation.whatsnew.DetailsWhatsNewViewModel
 import zed.rainxch.devprofile.presentation.DeveloperProfileViewModel
 import zed.rainxch.favourites.presentation.FavouritesViewModel
 import zed.rainxch.githubstore.app.announcements.AnnouncementsViewModel
+import zed.rainxch.githubstore.app.onboarding.OnboardingViewModel
 import zed.rainxch.githubstore.app.whatsnew.WhatsNewViewModel
 import zed.rainxch.home.presentation.HomeViewModel
+import zed.rainxch.home.presentation.categorylist.CategoryListViewModel
 import zed.rainxch.profile.presentation.ProfileViewModel
 import zed.rainxch.recentlyviewed.presentation.RecentlyViewedViewModel
 import zed.rainxch.search.presentation.SearchViewModel
@@ -22,7 +27,6 @@ import zed.rainxch.tweaks.presentation.TweaksViewModel
 import zed.rainxch.tweaks.presentation.feedback.FeedbackViewModel
 import zed.rainxch.tweaks.presentation.hidden.HiddenRepositoriesViewModel
 import zed.rainxch.tweaks.presentation.hosttokens.HostTokensViewModel
-import zed.rainxch.tweaks.presentation.mirror.AutoSuggestMirrorViewModel
 import zed.rainxch.tweaks.presentation.mirror.MirrorPickerViewModel
 import zed.rainxch.tweaks.presentation.skipped.SkippedUpdatesViewModel
 
@@ -32,20 +36,13 @@ val viewModelsModule =
         viewModelOf(::ExternalImportViewModel)
         viewModelOf(::AuthenticationViewModel)
         viewModel { params ->
-            // Indexed access because `ownerParam` and `repoParam` are both
-            // Strings — positional `params.get()` would silently pick the
-            // first matching by type and could swap the two if Koin ever
-            // changes its resolution order.
+
             DetailsViewModel(
-                repositoryId = params.get(0),
-                ownerParam = params.get(1),
-                repoParam = params.get(2),
-                isComingFromUpdate = params.get(3),
-                // Indexed access — `getOrNull<String>()` would pick the
-                // first matching String (`ownerParam`) since type-based
-                // resolution doesn't disambiguate against the other
-                // String slots in this factory.
-                sourceHostParam = if (params.size() > 4) params.get<String?>(4) else null,
+                repositoryId = params[0],
+                ownerParam = params[1],
+                repoParam = params[2],
+                isComingFromUpdate = params[3],
+                sourceHostParam = if (params.size() > 4) params[4] else null,
                 detailsRepository = get(),
                 downloader = get(),
                 installer = get(),
@@ -64,12 +61,30 @@ val viewModelsModule =
                 installationManager = get(),
                 attestationVerifier = get(),
                 downloadOrchestrator = get(),
-                telemetryRepository = get(),
                 externalImportRepository = get(),
                 apkInspector = get(),
-                authenticationState = get(),
+                userSessionRepository = get(),
                 systemInstallSerializer = get(),
-                profileRepository = get(),
+            )
+        }
+        viewModel { params ->
+            DetailsAboutViewModel(
+                repositoryId = params[0],
+                owner = params[1],
+                repo = params[2],
+                sourceHost = if (params.size() > 3) params[3] else null,
+                detailsRepository = get(),
+                translationRepository = get(),
+            )
+        }
+        viewModel { params ->
+            DetailsWhatsNewViewModel(
+                repositoryId = params[0],
+                owner = params[1],
+                repo = params[2],
+                sourceHost = if (params.size() > 3) params[3] else null,
+                detailsRepository = get(),
+                translationRepository = get(),
             )
         }
         viewModelOf(::DeveloperProfileViewModel)
@@ -90,9 +105,8 @@ val viewModelsModule =
                 tweaksRepository = get(),
                 seenReposRepository = get(),
                 searchHistoryRepository = get(),
-                telemetryRepository = get(),
-                profileRepository = get(),
                 hiddenReposRepository = get(),
+                userSessionRepository = get(),
                 initialPlatform = params.getOrNull<SearchPlatformUi>(),
             )
         }
@@ -101,20 +115,25 @@ val viewModelsModule =
         viewModelOf(::FeedbackViewModel)
         viewModelOf(::StarredReposViewModel)
         viewModelOf(::StarredPickerViewModel)
-        viewModelOf(::AutoSuggestMirrorViewModel)
         viewModelOf(::SkippedUpdatesViewModel)
         viewModelOf(::HiddenRepositoriesViewModel)
         viewModelOf(::HostTokensViewModel)
         viewModelOf(::WhatsNewViewModel)
         viewModelOf(::AnnouncementsViewModel)
+        viewModelOf(::OnboardingViewModel)
+        viewModel { params ->
+            CategoryListViewModel(
+                category = params.get(),
+                homeRepository = get(),
+            )
+        }
         viewModel {
             MirrorPickerViewModel(
                 mirrorRepository = get(),
                 testHttpClient =
                     get(
                         qualifier =
-                            org.koin.core.qualifier
-                                .named("test"),
+                            named("test"),
                     ),
             )
         }

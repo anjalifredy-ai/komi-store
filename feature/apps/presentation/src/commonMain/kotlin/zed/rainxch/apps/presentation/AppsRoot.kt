@@ -2,13 +2,18 @@
 
 package zed.rainxch.apps.presentation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,14 +45,11 @@ import androidx.compose.material.icons.outlined.FileUpload
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenu
+import zed.rainxch.core.presentation.components.overlays.GhsDropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -59,9 +61,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -77,7 +76,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -99,13 +97,20 @@ import zed.rainxch.apps.presentation.components.InstalledAppIcon
 import zed.rainxch.apps.presentation.components.LinkAppBottomSheet
 import zed.rainxch.apps.presentation.components.VariantPickerDialog
 import zed.rainxch.apps.presentation.components.KaoBanner
+import zed.rainxch.apps.presentation.components.UpdatesBanner
 import zed.rainxch.apps.presentation.import.components.ImportProposalBanner
 import zed.rainxch.apps.presentation.model.AppItem
 import zed.rainxch.apps.presentation.model.AppSortRule
 import zed.rainxch.apps.presentation.model.UpdateAllProgress
 import zed.rainxch.apps.presentation.model.UpdateState
 import zed.rainxch.core.presentation.components.ExpressiveCard
+import zed.rainxch.core.presentation.components.chrome.GhsHomeTopBar
+import zed.rainxch.core.presentation.utils.constrainedContentWidth
 import zed.rainxch.core.presentation.components.ScrollbarContainer
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
+import zed.rainxch.core.presentation.components.inputs.GhsTextField
 import zed.rainxch.core.presentation.locals.LocalBottomNavigationHeight
 import zed.rainxch.core.presentation.locals.LocalScrollbarEnabled
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
@@ -119,8 +124,8 @@ import zed.rainxch.githubstore.core.presentation.res.apps_compact_more_actions
 import zed.rainxch.githubstore.core.presentation.res.apps_ignore_updates
 import zed.rainxch.githubstore.core.presentation.res.apps_skip_version
 import zed.rainxch.githubstore.core.presentation.res.apps_skip_version_unskip
+import zed.rainxch.githubstore.core.presentation.res.apps_section_pending_installs
 import zed.rainxch.githubstore.core.presentation.res.apps_section_up_to_date
-import zed.rainxch.githubstore.core.presentation.res.apps_section_updates_available
 import zed.rainxch.githubstore.core.presentation.res.install
 import zed.rainxch.githubstore.core.presentation.res.ready_to_install
 import zed.rainxch.githubstore.core.presentation.res.variant_label_inline
@@ -132,14 +137,13 @@ import zed.rainxch.githubstore.core.presentation.res.checking
 import zed.rainxch.githubstore.core.presentation.res.checking_for_updates
 import zed.rainxch.githubstore.core.presentation.res.confirm_uninstall_message
 import zed.rainxch.githubstore.core.presentation.res.confirm_uninstall_title
-import zed.rainxch.githubstore.core.presentation.res.currently_updating
 import zed.rainxch.githubstore.core.presentation.res.downloading
 import zed.rainxch.githubstore.core.presentation.res.error_with_message
 import zed.rainxch.githubstore.core.presentation.res.export_apps
 import zed.rainxch.githubstore.core.presentation.res.export_apps_obtainium
 import zed.rainxch.githubstore.core.presentation.res.external_import_rescan_menu
 import zed.rainxch.githubstore.core.presentation.res.import_apps
-import zed.rainxch.githubstore.core.presentation.res.installed_apps
+import zed.rainxch.githubstore.core.presentation.res.bottom_nav_apps_title
 import zed.rainxch.githubstore.core.presentation.res.installing
 import zed.rainxch.githubstore.core.presentation.res.last_checked
 import zed.rainxch.githubstore.core.presentation.res.last_checked_hours_ago
@@ -159,9 +163,7 @@ import zed.rainxch.githubstore.core.presentation.res.confirm_discard_pending_mes
 import zed.rainxch.githubstore.core.presentation.res.confirm_discard_pending_title
 import zed.rainxch.githubstore.core.presentation.res.discard_pending_install
 import zed.rainxch.githubstore.core.presentation.res.update
-import zed.rainxch.githubstore.core.presentation.res.update_all
 import zed.rainxch.githubstore.core.presentation.res.updated_successfully
-import zed.rainxch.githubstore.core.presentation.res.updating_x_of_y
 
 @Composable
 fun AppsRoot(
@@ -175,11 +177,6 @@ fun AppsRoot(
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    // Re-entry sync: fires the cooldown-gated update check whenever the
-    // user returns to the Apps screen. Catches external installs that
-    // `PackageEventReceiver` missed when GHS was background-killed by
-    // an aggressive OEM ROM. The VM debounces network calls via
-    // `UPDATE_CHECK_COOLDOWN_MS` (30 min) so rapid resumes are cheap.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer =
@@ -210,10 +207,10 @@ fun AppsRoot(
                 }
             }
 
-            is AppsEvent.AppLinkedSuccessfully -> { // handled by ShowSuccess
+            is AppsEvent.AppLinkedSuccessfully -> {
             }
 
-            is AppsEvent.ImportComplete -> { // handled by ShowSuccess
+            is AppsEvent.ImportComplete -> {
             }
 
             AppsEvent.NavigateToExternalImport -> {
@@ -255,43 +252,54 @@ fun AppsScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(Res.string.installed_apps),
-                        style = MaterialTheme.typography.titleMediumEmphasized,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                },
+            GhsHomeTopBar(
+                title = stringResource(Res.string.bottom_nav_apps_title),
                 actions = {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outline,
+                                shape = RoundedCornerShape(50),
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                     Box {
-                        IconButton(onClick = { showSortMenu = true }) {
+                        Box(
+                            modifier = Modifier
+                                .clickable { showSortMenu = true }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.Sort,
                                 contentDescription = stringResource(Res.string.sort_apps),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp),
                             )
                         }
-                        DropdownMenu(
+                        GhsDropdownMenu(
                             expanded = showSortMenu,
                             onDismissRequest = { showSortMenu = false },
                         ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.sort_updates_first)) },
+                            GhsDropdownMenuItem(
+                                text = stringResource(Res.string.sort_updates_first),
                                 onClick = {
                                     showSortMenu = false
                                     onAction(AppsAction.OnSortRuleSelected(AppSortRule.UpdatesFirst))
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.sort_recently_updated)) },
+                            GhsDropdownMenuItem(
+                                text = stringResource(Res.string.sort_recently_updated),
                                 onClick = {
                                     showSortMenu = false
                                     onAction(AppsAction.OnSortRuleSelected(AppSortRule.RecentlyUpdated))
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.sort_name)) },
+                            GhsDropdownMenuItem(
+                                text = stringResource(Res.string.sort_name),
                                 onClick = {
                                     showSortMenu = false
                                     onAction(AppsAction.OnSortRuleSelected(AppSortRule.Name))
@@ -300,28 +308,49 @@ fun AppsScreen(
                         }
                     }
 
-                    IconButton(
-                        onClick = { onAction(AppsAction.OnCheckAllForUpdates) },
+                    Box(
+                        modifier = Modifier
+                            .size(1.dp, 20.dp)
+                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clickable { onAction(AppsAction.OnCheckAllForUpdates) }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = stringResource(Res.string.check_for_updates),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
-
+                    Box(
+                        modifier = Modifier
+                            .size(1.dp, 20.dp)
+                            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+                    )
                     Box {
-                        IconButton(onClick = { showOverflowMenu = true }) {
+                        Box(
+                            modifier = Modifier
+                                .clickable { showOverflowMenu = true }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
                             Icon(
                                 imageVector = Icons.Outlined.MoreVert,
                                 contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp),
                             )
                         }
-                        DropdownMenu(
+                        GhsDropdownMenu(
                             expanded = showOverflowMenu,
                             onDismissRequest = { showOverflowMenu = false },
                         ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.export_apps)) },
+                            GhsDropdownMenuItem(
+                                text = stringResource(Res.string.export_apps),
                                 onClick = {
                                     showOverflowMenu = false
                                     onAction(AppsAction.OnExportApps)
@@ -330,8 +359,8 @@ fun AppsScreen(
                                     Icon(Icons.Outlined.FileUpload, contentDescription = null)
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.export_apps_obtainium)) },
+                            GhsDropdownMenuItem(
+                                text = stringResource(Res.string.export_apps_obtainium),
                                 onClick = {
                                     showOverflowMenu = false
                                     onAction(AppsAction.OnExportObtainium)
@@ -340,8 +369,8 @@ fun AppsScreen(
                                     Icon(Icons.Outlined.FileUpload, contentDescription = null)
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.import_apps)) },
+                            GhsDropdownMenuItem(
+                                text = stringResource(Res.string.import_apps),
                                 onClick = {
                                     showOverflowMenu = false
                                     onAction(AppsAction.OnImportApps)
@@ -350,8 +379,8 @@ fun AppsScreen(
                                     Icon(Icons.Outlined.FileDownload, contentDescription = null)
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.external_import_rescan_menu)) },
+                            GhsDropdownMenuItem(
+                                text = stringResource(Res.string.external_import_rescan_menu),
                                 onClick = {
                                     showOverflowMenu = false
                                     onAction(AppsAction.OnRescanForGithubApps)
@@ -360,8 +389,8 @@ fun AppsScreen(
                                     Icon(Icons.Outlined.Search, contentDescription = null)
                                 },
                             )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.add_from_starred_title)) },
+                            GhsDropdownMenuItem(
+                                text = stringResource(Res.string.add_from_starred_title),
                                 onClick = {
                                     showOverflowMenu = false
                                     onAction(AppsAction.OnAddFromStarredClick)
@@ -374,6 +403,7 @@ fun AppsScreen(
                                 },
                             )
                         }
+                    }
                     }
                 },
             )
@@ -402,7 +432,6 @@ fun AppsScreen(
         },
     ) { innerPadding ->
 
-        // Link app bottom sheet
         if (state.showLinkSheet) {
             LinkAppBottomSheet(
                 state = state,
@@ -410,7 +439,6 @@ fun AppsScreen(
             )
         }
 
-        // Per-app advanced settings (monorepo filter / fallback)
         if (state.advancedSettingsApp != null) {
             AdvancedAppSettingsBottomSheet(
                 state = state,
@@ -418,7 +446,6 @@ fun AppsScreen(
             )
         }
 
-        // Variant picker dialog (shown for stale variants or explicit picks)
         if (state.variantPickerApp != null) {
             VariantPickerDialog(
                 state = state,
@@ -426,7 +453,6 @@ fun AppsScreen(
             )
         }
 
-        // Import summary sheet
         state.importSummary?.let { summary ->
             zed.rainxch.apps.presentation.components.ImportSummarySheet(
                 summary = summary,
@@ -434,7 +460,6 @@ fun AppsScreen(
             )
         }
 
-        // Uninstall confirmation dialog
         state.appPendingUninstall?.let { app ->
             AlertDialog(
                 onDismissRequest = { onAction(AppsAction.OnDismissUninstallDialog) },
@@ -450,29 +475,24 @@ fun AppsScreen(
                     )
                 },
                 confirmButton = {
-                    TextButton(
+                    GhsButton(
                         onClick = { onAction(AppsAction.OnUninstallConfirmed(app)) },
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.uninstall),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
+                        label = stringResource(Res.string.uninstall),
+                        variant = GhsButtonVariant.Text,
+                        size = GhsButtonSize.Sm,
+                    )
                 },
                 dismissButton = {
-                    TextButton(
+                    GhsButton(
                         onClick = { onAction(AppsAction.OnDismissUninstallDialog) },
-                    ) {
-                        Text(text = stringResource(Res.string.cancel))
-                    }
+                        label = stringResource(Res.string.cancel),
+                        variant = GhsButtonVariant.Text,
+                        size = GhsButtonSize.Sm,
+                    )
                 },
             )
         }
 
-        // Discard-pending-install confirmation dialog. Mirrors the
-        // uninstall flow because both branches blow away DB rows the
-        // user might still want — the discard target also deletes the
-        // parked APK from disk, so the prompt is doubly warranted.
         state.appPendingDiscard?.let { app ->
             AlertDialog(
                 onDismissRequest = { onAction(AppsAction.OnDismissDiscardPendingDialog) },
@@ -491,21 +511,20 @@ fun AppsScreen(
                     )
                 },
                 confirmButton = {
-                    TextButton(
+                    GhsButton(
                         onClick = { onAction(AppsAction.OnConfirmDiscardPendingInstall(app)) },
-                    ) {
-                        Text(
-                            text = stringResource(Res.string.discard_pending_install),
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    }
+                        label = stringResource(Res.string.discard_pending_install),
+                        variant = GhsButtonVariant.Text,
+                        size = GhsButtonSize.Sm,
+                    )
                 },
                 dismissButton = {
-                    TextButton(
+                    GhsButton(
                         onClick = { onAction(AppsAction.OnDismissDiscardPendingDialog) },
-                    ) {
-                        Text(text = stringResource(Res.string.cancel))
-                    }
+                        label = stringResource(Res.string.cancel),
+                        variant = GhsButtonVariant.Text,
+                        size = GhsButtonSize.Sm,
+                    )
                 },
             )
         }
@@ -518,26 +537,22 @@ fun AppsScreen(
                     .fillMaxSize()
                     .padding(innerPadding),
         ) {
-            Column(
+            Box(
                 modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                TextField(
+            Column(
+                modifier = Modifier.constrainedContentWidth().fillMaxHeight(),
+            ) {
+                GhsTextField(
                     value = state.searchQuery,
                     onValueChange = { onAction(AppsAction.OnSearchChange(it)) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null)
-                    },
-                    placeholder = { Text(stringResource(Res.string.search_your_apps)) },
+                    leadingIcon = Icons.Default.Search,
+                    placeholder = stringResource(Res.string.search_your_apps),
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = CircleShape,
-                    colors =
-                        TextFieldDefaults.colors(
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                        ),
                 )
 
                 if (state.isCheckingForUpdates) {
@@ -567,43 +582,8 @@ fun AppsScreen(
                                 formatLastChecked(state.lastCheckedTimestamp),
                             ),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    )
-                }
-
-                val hasUpdates =
-                    state.apps.any {
-                        it.installedApp.isUpdateAvailable && it.installedApp.updateCheckEnabled
-                    }
-                if (hasUpdates && !state.isUpdatingAll) {
-                    Button(
-                        onClick = { onAction(AppsAction.OnUpdateAll) },
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                        enabled = state.updateAllButtonEnabled,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Update,
-                            contentDescription = null,
-                        )
-
-                        Spacer(Modifier.width(8.dp))
-
-                        Text(
-                            text = stringResource(Res.string.update_all),
-                        )
-                    }
-                }
-
-                if (state.isUpdatingAll && state.updateAllProgress != null) {
-                    UpdateAllProgressCard(
-                        progress = state.updateAllProgress,
-                        onCancel = {
-                            onAction(AppsAction.OnCancelUpdateAll)
-                        },
                     )
                 }
 
@@ -634,16 +614,33 @@ fun AppsScreen(
                         val listState = rememberLazyListState()
                         val isScrollbarEnabled = LocalScrollbarEnabled.current
 
-                        // Split filteredApps into the "Updates available" group (rich
-                        // rows) and the "Up to date" group (compact rows) — issue #463.
-                        // Sort order is already applied by the ViewModel.
+                        val pendingGroup =
+                            state.filteredApps.filter {
+                                it.installedApp.isPendingInstall &&
+                                    it.installedApp.pendingInstallFilePath != null
+                            }
                         val updatesGroup =
                             state.filteredApps.filter {
-                                it.installedApp.isUpdateAvailable && it.installedApp.updateCheckEnabled
+                                it.installedApp.isUpdateAvailable &&
+                                    it.installedApp.updateCheckEnabled &&
+                                    !it.installedApp.isPendingInstall
                             }
                         val idleGroup =
                             state.filteredApps.filter {
-                                !it.installedApp.isUpdateAvailable || !it.installedApp.updateCheckEnabled
+                                (!it.installedApp.isUpdateAvailable || !it.installedApp.updateCheckEnabled) &&
+                                    !it.installedApp.isPendingInstall
+                            }
+
+                        val onRowSelect: (zed.rainxch.apps.presentation.model.InstalledAppUi) -> Unit =
+                            { app ->
+                                onAction(
+                                    AppsAction.OnNavigateToRepo(
+                                        repoId = app.repoId,
+                                        sourceHost = app.sourceHost,
+                                        owner = app.repoOwner,
+                                        repo = app.repoName,
+                                    ),
+                                )
                             }
 
                         ScrollbarContainer(
@@ -654,10 +651,7 @@ fun AppsScreen(
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize().arrowKeyScroll(listState),
-                                // Bottom inset clears the Add-by-link FAB so
-                                // the last list item isn't hidden under it.
-                                // FAB ≈ 56dp + 16dp scaffold inset + 16dp
-                                // breathing room.
+
                                 contentPadding = PaddingValues(
                                     start = 0.dp,
                                     end = 0.dp,
@@ -689,16 +683,90 @@ fun AppsScreen(
                                     }
                                 }
 
-                                if (updatesGroup.isNotEmpty()) {
-                                    item(key = "header-updates-available") {
+                                if (pendingGroup.isNotEmpty()) {
+                                    item(key = "header-pending-installs") {
                                         AppsSectionHeader(
-                                            title = stringResource(Res.string.apps_section_updates_available),
-                                            count = updatesGroup.size,
+                                            title = stringResource(Res.string.apps_section_pending_installs),
+                                            count = pendingGroup.size,
                                             isExpanded = true,
                                             collapsible = false,
                                             onToggle = {},
                                         )
                                     }
+                                    items(
+                                        items = pendingGroup,
+                                        key = { "pending-${it.installedApp.packageName}" },
+                                    ) { appItem ->
+                                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                            AppItemCard(
+                                                appItem = appItem,
+                                                onOpenClick = { onAction(AppsAction.OnOpenApp(appItem.installedApp)) },
+                                                onUpdateClick = { onAction(AppsAction.OnUpdateApp(appItem.installedApp)) },
+                                                onCancelClick = { onAction(AppsAction.OnCancelUpdate(appItem.installedApp.packageName)) },
+                                                onUninstallClick = { onAction(AppsAction.OnUninstallApp(appItem.installedApp)) },
+                                                onRepoClick = { onRowSelect(appItem.installedApp) },
+                                                onTogglePreReleases = { enabled ->
+                                                    onAction(AppsAction.OnTogglePreReleases(appItem.installedApp.packageName, enabled))
+                                                },
+                                                onToggleUpdateCheck = { enabled ->
+                                                    onAction(AppsAction.OnToggleUpdateCheck(appItem.installedApp.packageName, enabled))
+                                                },
+                                                onAdvancedSettingsClick = {
+                                                    onAction(AppsAction.OnOpenAdvancedSettings(appItem.installedApp))
+                                                },
+                                                onPickVariantClick = {
+                                                    onAction(
+                                                        AppsAction.OnOpenVariantPicker(
+                                                            app = appItem.installedApp,
+                                                            resumeUpdateAfterPick = false,
+                                                        ),
+                                                    )
+                                                },
+                                                onInstallPendingClick = {
+                                                    onAction(AppsAction.OnInstallPendingApp(appItem.installedApp))
+                                                },
+                                                onDiscardPendingClick = {
+                                                    onAction(AppsAction.OnDiscardPendingInstall(appItem.installedApp))
+                                                },
+                                                onSkipVersionClick = {
+                                                    val tag =
+                                                        appItem.installedApp.latestVersion
+                                                            ?: appItem.installedApp.latestVersionName
+                                                    if (!tag.isNullOrBlank()) {
+                                                        onAction(
+                                                            AppsAction.OnSkipReleaseTag(
+                                                                appItem.installedApp.packageName,
+                                                                tag,
+                                                            ),
+                                                        )
+                                                    }
+                                                },
+                                                onUnskipVersionClick = {
+                                                    onAction(AppsAction.OnUnskipReleaseTag(appItem.installedApp.packageName))
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (updatesGroup.isNotEmpty() || state.isUpdatingAll) {
+                                    item(key = "updates-banner") {
+                                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                                            UpdatesBanner(
+                                                count = updatesGroup.size,
+                                                isExpanded = state.isUpdatesSectionExpanded,
+                                                isUpdatingAll = state.isUpdatingAll,
+                                                updateAllProgress = state.updateAllProgress,
+                                                updateAllEnabled = state.updateAllButtonEnabled,
+                                                onUpdateAll = { onAction(AppsAction.OnUpdateAll) },
+                                                onCancelUpdateAll = { onAction(AppsAction.OnCancelUpdateAll) },
+                                                onToggleExpanded = { onAction(AppsAction.OnToggleUpdatesSection) },
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (updatesGroup.isNotEmpty() && state.isUpdatesSectionExpanded) {
                                     items(
                                         items = updatesGroup,
                                         key = { "rich-${it.installedApp.packageName}" },
@@ -710,16 +778,7 @@ fun AppsScreen(
                                                 onUpdateClick = { onAction(AppsAction.OnUpdateApp(appItem.installedApp)) },
                                                 onCancelClick = { onAction(AppsAction.OnCancelUpdate(appItem.installedApp.packageName)) },
                                                 onUninstallClick = { onAction(AppsAction.OnUninstallApp(appItem.installedApp)) },
-                                                onRepoClick = {
-                                                    onAction(
-                                                        AppsAction.OnNavigateToRepo(
-                                                            repoId = appItem.installedApp.repoId,
-                                                            sourceHost = appItem.installedApp.sourceHost,
-                                                            owner = appItem.installedApp.repoOwner,
-                                                            repo = appItem.installedApp.repoName,
-                                                        ),
-                                                    )
-                                                },
+                                                onRepoClick = { onRowSelect(appItem.installedApp) },
                                                 onTogglePreReleases = { enabled ->
                                                     onAction(AppsAction.OnTogglePreReleases(appItem.installedApp.packageName, enabled))
                                                 },
@@ -828,16 +887,7 @@ fun AppsScreen(
                                                             ),
                                                         )
                                                     },
-                                                    onRowClick = {
-                                                        onAction(
-                                                            AppsAction.OnNavigateToRepo(
-                                                                repoId = appItem.installedApp.repoId,
-                                                                sourceHost = appItem.installedApp.sourceHost,
-                                                                owner = appItem.installedApp.repoOwner,
-                                                                repo = appItem.installedApp.repoName,
-                                                            ),
-                                                        )
-                                                    },
+                                                    onRowClick = { onRowSelect(appItem.installedApp) },
                                                 )
                                             }
                                         }
@@ -852,64 +902,7 @@ fun AppsScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun UpdateAllProgressCard(
-    progress: UpdateAllProgress,
-    onCancel: () -> Unit,
-) {
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text =
-                        stringResource(
-                            Res.string.updating_x_of_y,
-                            progress.current,
-                            progress.total,
-                        ),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                IconButton(onClick = onCancel) {
-                    Icon(
-                        Icons.Default.Close,
-                        contentDescription = stringResource(Res.string.cancel),
-                    )
-                }
             }
-
-            Spacer(Modifier.height(8.dp))
-
-            Text(
-                text =
-                    stringResource(
-                        Res.string.currently_updating,
-                        progress.currentAppName,
-                    ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            LinearWavyProgressIndicator(
-                progress = { progress.current.toFloat() / progress.total },
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 }
@@ -1009,9 +1002,7 @@ fun AppItemCard(
                     }
 
                     when {
-                        // Highest priority: a download finished while
-                        // the user wasn't watching, the file is on disk
-                        // and ready to be installed with one tap.
+
                         app.pendingInstallFilePath != null -> {
                             Text(
                                 text = stringResource(Res.string.ready_to_install),
@@ -1030,10 +1021,7 @@ fun AppItemCard(
                         }
 
                         app.preferredVariantStale -> {
-                            // Tap-to-fix label: route through the same OnUpdateApp
-                            // intercept that would have opened the picker anyway,
-                            // but also surface a tappable hint here for users
-                            // who notice the warning before tapping Update.
+
                             Text(
                                 text = stringResource(Res.string.variant_stale_hint),
                                 style = MaterialTheme.typography.bodySmall,
@@ -1060,9 +1048,7 @@ fun AppItemCard(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            // Show the pinned variant tag inline so users can
-                            // see at a glance which APK they'll get when they
-                            // tap Update.
+
                             if (!app.preferredAssetVariant.isNullOrBlank()) {
                                 Text(
                                     text =
@@ -1125,10 +1111,7 @@ fun AppItemCard(
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Subtle visual cue when a monorepo filter is active —
-                    // the icon tints to primary, so users can tell at a
-                    // glance which apps have an active filter without
-                    // having to open the sheet.
+
                     val advancedFilterDescription =
                         stringResource(Res.string.advanced_settings_open)
                     val hasFilter =
@@ -1152,10 +1135,6 @@ fun AppItemCard(
                         )
                     }
 
-                    // Always-visible "Pick variant" entry point. Tints to
-                    // primary when a variant is pinned (so users can see
-                    // at a glance whether the app has a sticky pick) and
-                    // to error when the pinned variant has gone stale.
                     val pickVariantDescription =
                         stringResource(Res.string.variant_picker_open)
                     val hasPin = !app.preferredAssetVariant.isNullOrBlank()
@@ -1205,38 +1184,32 @@ fun AppItemCard(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        DropdownMenu(
+                        GhsDropdownMenu(
                             expanded = showRowOverflow,
                             onDismissRequest = { showRowOverflow = false },
                         ) {
-                            DropdownMenuItem(
-                                text = {
-                                    val baseLabel = stringResource(Res.string.apps_ignore_updates)
-                                    Text(text = if (!app.updateCheckEnabled) "$baseLabel  ✓" else baseLabel)
-                                },
-                                onClick = {
-                                    showRowOverflow = false
-                                    onToggleUpdateCheck(!app.updateCheckEnabled)
-                                },
-                            )
+                            run {
+                                val baseLabel = stringResource(Res.string.apps_ignore_updates)
+                                GhsDropdownMenuItem(
+                                    text = if (!app.updateCheckEnabled) "$baseLabel  ✓" else baseLabel,
+                                    onClick = {
+                                        showRowOverflow = false
+                                        onToggleUpdateCheck(!app.updateCheckEnabled)
+                                    },
+                                )
+                            }
 
-                            // Skip-this-version is only meaningful when an
-                            // update is currently being prompted (we have a
-                            // latestVersion to skip). When the row already
-                            // has a skipped tag stored, surface the unskip
-                            // affordance instead so the user can revert the
-                            // suppression without leaving the row.
                             if (app.skippedReleaseTag != null) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.apps_skip_version_unskip)) },
+                                GhsDropdownMenuItem(
+                                    text = stringResource(Res.string.apps_skip_version_unskip),
                                     onClick = {
                                         showRowOverflow = false
                                         onUnskipVersionClick()
                                     },
                                 )
                             } else if (app.isUpdateAvailable && !(app.latestVersion ?: app.latestVersionName).isNullOrBlank()) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(Res.string.apps_skip_version)) },
+                                GhsDropdownMenuItem(
+                                    text = stringResource(Res.string.apps_skip_version),
                                     onClick = {
                                         showRowOverflow = false
                                         onSkipVersionClick()
@@ -1358,52 +1331,27 @@ fun AppItemCard(
 
                 when (appItem.updateState) {
                     is UpdateState.Downloading, is UpdateState.Installing, is UpdateState.CheckingUpdate -> {
-                        Button(
+                        GhsButton(
                             onClick = onCancelClick,
+                            label = stringResource(Res.string.cancel),
+                            variant = GhsButtonVariant.Destructive,
+                            leadingIcon = Icons.Default.Cancel,
                             modifier = Modifier.weight(1f),
-                            colors =
-                                ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                ),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Cancel,
-                                contentDescription = stringResource(Res.string.cancel),
-                                modifier = Modifier.size(18.dp),
-                            )
-
-                            Spacer(Modifier.width(4.dp))
-
-                            Text(
-                                text = stringResource(Res.string.cancel),
-                            )
-                        }
+                        )
                     }
 
                     else -> {
                         if (app.pendingInstallFilePath != null) {
-                            // One-tap install for a deferred download.
-                            // Bypasses the download phase entirely —
-                            // the file is already on disk.
-                            Button(
+
+                            GhsButton(
                                 onClick = onInstallPendingClick,
-                                modifier = Modifier.weight(1f),
+                                label = stringResource(Res.string.install),
+                                variant = GhsButtonVariant.Primary,
+                                leadingIcon = Icons.Default.Update,
                                 enabled = !isBusy,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Update,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text = stringResource(Res.string.install),
-                                )
-                            }
-                            // Quick escape hatch: user cancelled the
-                            // system prompt and doesn't want this app.
-                            // Discard removes the parked file + DB row.
+                                modifier = Modifier.weight(1f),
+                            )
+
                             IconButton(onClick = onDiscardPendingClick) {
                                 Icon(
                                     imageVector = Icons.Default.Cancel,
@@ -1412,63 +1360,31 @@ fun AppItemCard(
                                 )
                             }
                         } else if (app.isUpdateAvailable && !app.isPendingInstall) {
-                            Button(
+                            GhsButton(
                                 onClick = onUpdateClick,
+                                label = stringResource(Res.string.update),
+                                variant = GhsButtonVariant.Primary,
+                                leadingIcon = Icons.Default.Update,
                                 modifier = Modifier.weight(1f),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Update,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text = stringResource(Res.string.update),
-                                )
-                            }
+                            )
                         } else if (app.isPendingInstall) {
-                            // Pending row whose parked file is gone
-                            // (legacy row from before we persisted the
-                            // path, or file deleted out-of-band). The
-                            // app isn't actually installed — Open would
-                            // snackbar an error. Offer Discard so the
-                            // user can clear the row.
-                            Button(
+
+                            GhsButton(
                                 onClick = onDiscardPendingClick,
+                                label = stringResource(Res.string.discard_pending_install),
+                                variant = GhsButtonVariant.Destructive,
+                                leadingIcon = Icons.Default.Cancel,
                                 modifier = Modifier.weight(1f),
-                                colors =
-                                    ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                    ),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Cancel,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text = stringResource(Res.string.discard_pending_install),
-                                )
-                            }
+                            )
                         } else {
-                            Button(
-                                shapes = ButtonDefaults.shapes(),
+                            GhsButton(
                                 onClick = onOpenClick,
-                                modifier = Modifier.weight(1f),
+                                label = stringResource(Res.string.open),
+                                variant = GhsButtonVariant.Primary,
+                                leadingIcon = Icons.AutoMirrored.Filled.OpenInNew,
                                 enabled = !isBusy,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Spacer(Modifier.width(4.dp))
-                                Text(
-                                    text = stringResource(Res.string.open),
-                                )
-                            }
+                                modifier = Modifier.weight(1f),
+                            )
                         }
                     }
                 }

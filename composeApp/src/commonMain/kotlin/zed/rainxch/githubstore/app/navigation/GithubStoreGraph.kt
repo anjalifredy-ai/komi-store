@@ -9,11 +9,6 @@ sealed interface GithubStoreGraph {
 
     @Serializable
     data class SearchScreen(
-        // String over enum: Compose Navigation's Desktop (`nonAndroid.kt`)
-        // serializer needs an explicit NavType for non-primitive nav args,
-        // which enums don't have out of the box. Enum-as-name string keeps
-        // the contract type-safe at the caller / VM boundary while letting
-        // the route serialize on every target with no typeMap.
         val initialPlatform: String? = null,
     ) : GithubStoreGraph
 
@@ -26,9 +21,6 @@ sealed interface GithubStoreGraph {
         val owner: String = "",
         val repo: String = "",
         val isComingFromUpdate: Boolean = false,
-        // Non-null when the repo lives on a non-GitHub forge (Codeberg /
-        // Forgejo / Gitea / custom). Drives the foreign-source branch in
-        // DetailsViewModel so we hit the Forgejo API instead of GitHub.
         val sourceHost: String? = null,
     ) : GithubStoreGraph
 
@@ -44,6 +36,39 @@ sealed interface GithubStoreGraph {
     data object TweaksScreen : GithubStoreGraph
 
     @Serializable
+    data object TweaksAppearanceScreen : GithubStoreGraph
+
+    @Serializable
+    data object TweaksLanguageScreen : GithubStoreGraph
+
+    @Serializable
+    data object TweaksConnectionScreen : GithubStoreGraph
+
+    @Serializable
+    data object TweaksSourcesScreen : GithubStoreGraph
+
+    @Serializable
+    data object TweaksTranslationScreen : GithubStoreGraph
+
+    @Serializable
+    data object TweaksInstallScreen : GithubStoreGraph
+
+    @Serializable
+    data object TweaksUpdatesScreen : GithubStoreGraph
+
+    @Serializable
+    data object TweaksStorageScreen : GithubStoreGraph
+
+    @Serializable
+    data object TweaksPrivacyScreen : GithubStoreGraph
+
+    @Serializable
+    data object AboutScreen : GithubStoreGraph
+
+    @Serializable
+    data object LicensesScreen : GithubStoreGraph
+
+    @Serializable
     data object FavouritesScreen : GithubStoreGraph
 
     @Serializable
@@ -56,7 +81,7 @@ sealed interface GithubStoreGraph {
     data object AppsScreen : GithubStoreGraph
 
     @Serializable
-    data object SponsorScreen : GithubStoreGraph
+    data object OnboardingScreen : GithubStoreGraph
 
     @Serializable
     data object ExternalImportScreen : GithubStoreGraph
@@ -81,4 +106,25 @@ sealed interface GithubStoreGraph {
 
     @Serializable
     data object HostTokensScreen : GithubStoreGraph
+
+    @Serializable
+    data class CategoryListScreen(
+        val category: String,
+    ) : GithubStoreGraph
+
+    @Serializable
+    data class DetailsAboutScreen(
+        val repositoryId: Long = -1L,
+        val owner: String = "",
+        val repo: String = "",
+        val sourceHost: String? = null,
+    ) : GithubStoreGraph
+
+    @Serializable
+    data class DetailsWhatsNewScreen(
+        val repositoryId: Long = -1L,
+        val owner: String = "",
+        val repo: String = "",
+        val sourceHost: String? = null,
+    ) : GithubStoreGraph
 }

@@ -1,5 +1,7 @@
 package zed.rainxch.tweaks.presentation.hosttokens
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -25,24 +26,20 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.VpnKey
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,6 +49,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -63,6 +61,11 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.core.domain.model.ForgeKind
 import zed.rainxch.core.domain.model.HostToken
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
+import zed.rainxch.core.presentation.components.inputs.GhsTextField
+import zed.rainxch.core.presentation.theme.tokens.Radii
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.host_tokens_action_add
@@ -134,7 +137,15 @@ fun HostTokensRoot(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(Res.string.host_tokens_title)) },
+                title = {
+                    Text(
+                        text = stringResource(Res.string.host_tokens_title),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -231,11 +242,7 @@ fun HostTokensRoot(
 }
 
 private fun visiblePresetForges(state: HostTokensState): List<ForgeKind> {
-    // Hide the GitHub preset card when the user is already signed in via
-    // the in-app OAuth flow — for those users a PAT for github.com is
-    // redundant. Power users can still reach it via "Other forge".
-    // Always show forges the user already has a stored token for, so the
-    // picker stays consistent with the row list when those rows exist.
+
     val storedHosts = state.tokens.map { it.host }.toSet()
     return ForgeKind.entries.filter { kind ->
         when {
@@ -248,19 +255,18 @@ private fun visiblePresetForges(state: HostTokensState): List<ForgeKind> {
 
 @Composable
 private fun OAuthCoexistenceNote() {
-    OutlinedCard(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.outlinedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-        ),
-        shape = RoundedCornerShape(16.dp),
+        shape = Radii.row,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
                 Icons.Default.Info,
@@ -289,23 +295,28 @@ private fun EmptyStatePicker(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(Res.string.host_tokens_empty_title),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
             )
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(Res.string.host_tokens_empty_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(16.dp))
             Text(
                 text = stringResource(Res.string.host_tokens_picker_title),
-                style = MaterialTheme.typography.labelLarge,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
         }
         items(presetForges, key = { it.tokenHost }) { kind ->
             PresetForgeCard(
@@ -326,9 +337,11 @@ private fun PresetForgeCard(
     onPick: () -> Unit,
     onOpenTokenCreationPage: () -> Unit,
 ) {
-    ElevatedCard(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = Radii.row,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Column(
             modifier = Modifier
@@ -360,20 +373,21 @@ private fun PresetForgeCard(
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
             ) {
-                TextButton(onClick = onOpenTokenCreationPage) {
-                    Icon(
-                        Icons.Default.OpenInBrowser,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(stringResource(Res.string.host_tokens_picker_open_page))
-                }
-                TextButton(onClick = onPick) {
-                    Text(stringResource(Res.string.host_tokens_picker_paste))
-                }
+                GhsButton(
+                    onClick = onOpenTokenCreationPage,
+                    label = stringResource(Res.string.host_tokens_picker_open_page),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                    leadingIcon = Icons.Default.OpenInBrowser,
+                )
+                GhsButton(
+                    onClick = onPick,
+                    label = stringResource(Res.string.host_tokens_picker_paste),
+                    variant = GhsButtonVariant.Text,
+                    size = GhsButtonSize.Sm,
+                )
             }
         }
     }
@@ -381,10 +395,14 @@ private fun PresetForgeCard(
 
 @Composable
 private fun OtherForgeCard(onPick: () -> Unit) {
-    OutlinedCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        onClick = onPick,
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(Radii.row)
+            .clickable(onClick = onPick),
+        shape = Radii.row,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Row(
             modifier = Modifier
@@ -437,9 +455,12 @@ private fun PickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(Res.string.host_tokens_action_cancel))
-            }
+            GhsButton(
+                onClick = onDismiss,
+                label = stringResource(Res.string.host_tokens_action_cancel),
+                variant = GhsButtonVariant.Text,
+                size = GhsButtonSize.Sm,
+            )
         },
     )
 }
@@ -457,22 +478,25 @@ private fun TokenRow(
 ) {
     val forge = ForgeKind.fromHost(token.host)
     var menuOpen by remember { mutableStateOf(false) }
-    ElevatedCard(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = Radii.row,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 16.dp, top = 12.dp, end = 8.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Icon(
                 Icons.Default.VpnKey,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
             )
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = forge?.displayName ?: token.host,
@@ -574,60 +598,63 @@ private fun AddTokenDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (state.draftForge == null) {
-                    OutlinedTextField(
-                        value = state.draftHost,
-                        onValueChange = { onAction(HostTokensAction.OnDraftHostChanged(it)) },
-                        label = { Text(stringResource(Res.string.host_tokens_compose_field_forge_address)) },
-                        singleLine = true,
-                        isError = state.draftHostError != null,
-                        supportingText = state.draftHostError?.let { res ->
-                            { Text(stringResource(res)) }
-                        } ?: state.draftHostNormalized
+                    val hostSupporting = state.draftHostError?.let { stringResource(it) }
+                        ?: state.draftHostNormalized
                             .takeIf { it.isNotBlank() && it != state.draftHost.trim() }
                             ?.let { normalized ->
-                                {
-                                    Text(
-                                        stringResource(
-                                            Res.string.host_tokens_compose_will_connect,
-                                            normalized,
-                                        ),
-                                    )
-                                }
-                            },
+                                stringResource(
+                                    Res.string.host_tokens_compose_will_connect,
+                                    normalized,
+                                )
+                            }
+                    GhsTextField(
+                        value = state.draftHost,
+                        onValueChange = { onAction(HostTokensAction.OnDraftHostChanged(it)) },
+                        label = stringResource(Res.string.host_tokens_compose_field_forge_address),
+                        singleLine = true,
+                        isError = state.draftHostError != null,
+                        supportingText = hostSupporting,
                     )
                 }
-                OutlinedTextField(
+                val tokenSupporting = state.draftTokenError?.let { stringResource(it) }
+                    ?: state.draftDetectedTokenKind?.let { kind ->
+                        stringResource(Res.string.host_tokens_compose_detected, kind)
+                    }
+                    ?: replacingExisting?.let {
+                        stringResource(Res.string.host_tokens_compose_replace_hint)
+                    }
+                GhsTextField(
                     value = state.draftToken,
                     onValueChange = { onAction(HostTokensAction.OnDraftTokenChanged(it)) },
-                    label = { Text(stringResource(Res.string.host_tokens_field_token)) },
+                    label = stringResource(Res.string.host_tokens_field_token),
                     singleLine = true,
                     isError = state.draftTokenError != null,
-                    supportingText = state.draftTokenError?.let { res ->
-                        { Text(stringResource(res)) }
-                    } ?: state.draftDetectedTokenKind?.let { kind ->
-                        { Text(stringResource(Res.string.host_tokens_compose_detected, kind)) }
-                    } ?: replacingExisting?.let {
-                        { Text(stringResource(Res.string.host_tokens_compose_replace_hint)) }
-                    },
+                    supportingText = tokenSupporting,
                     visualTransformation = PasswordVisualTransformation(),
                 )
-                OutlinedTextField(
+                GhsTextField(
                     value = state.draftDisplayName,
                     onValueChange = { onAction(HostTokensAction.OnDraftDisplayNameChanged(it)) },
-                    label = { Text(stringResource(Res.string.host_tokens_field_display_name)) },
+                    label = stringResource(Res.string.host_tokens_field_display_name),
                     singleLine = true,
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onAction(HostTokensAction.OnAddConfirm) }) {
-                Text(stringResource(Res.string.host_tokens_action_save))
-            }
+            GhsButton(
+                onClick = { onAction(HostTokensAction.OnAddConfirm) },
+                label = stringResource(Res.string.host_tokens_action_save),
+                variant = GhsButtonVariant.Text,
+                size = GhsButtonSize.Sm,
+            )
         },
         dismissButton = {
-            TextButton(onClick = { onAction(HostTokensAction.OnAddDismiss) }) {
-                Text(stringResource(Res.string.host_tokens_action_cancel))
-            }
+            GhsButton(
+                onClick = { onAction(HostTokensAction.OnAddDismiss) },
+                label = stringResource(Res.string.host_tokens_action_cancel),
+                variant = GhsButtonVariant.Text,
+                size = GhsButtonSize.Sm,
+            )
         },
     )
 }

@@ -5,10 +5,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -37,6 +40,7 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -48,7 +52,6 @@ import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -87,11 +90,14 @@ import org.koin.compose.viewmodel.koinViewModel
 import zed.rainxch.core.presentation.components.GithubStoreButton
 import zed.rainxch.core.presentation.components.RepositoryCard
 import zed.rainxch.core.presentation.components.ScrollbarContainer
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import zed.rainxch.core.presentation.locals.LocalBottomNavigationHeight
 import zed.rainxch.core.presentation.locals.LocalScrollbarEnabled
 import zed.rainxch.core.presentation.theme.GithubStoreTheme
 import zed.rainxch.core.presentation.utils.ObserveAsEvents
 import zed.rainxch.core.presentation.utils.arrowKeyScroll
+import zed.rainxch.core.presentation.utils.constrainedContentWidth
 import zed.rainxch.githubstore.core.presentation.res.*
 import zed.rainxch.search.presentation.components.LanguageFilterBottomSheet
 import zed.rainxch.search.presentation.components.SearchHistorySection
@@ -99,6 +105,7 @@ import zed.rainxch.search.presentation.components.SortByBottomSheet
 import zed.rainxch.search.presentation.model.ParsedGithubLink
 import zed.rainxch.search.presentation.model.ProgrammingLanguageUi
 import zed.rainxch.search.presentation.model.SearchPlatformUi
+import zed.rainxch.search.presentation.model.SearchSourceUi
 import zed.rainxch.search.presentation.model.SortByUi
 import zed.rainxch.search.presentation.utils.label
 
@@ -152,6 +159,34 @@ fun SearchRoot(
             }
         },
     )
+
+    if (state.isFiltersSheetVisible) {
+        zed.rainxch.search.presentation.components.SearchFiltersSheet(
+            selectedSource = state.selectedSource,
+            availableSources = state.availableSources,
+            selectedPlatform = state.selectedSearchPlatform,
+            selectedLanguage = state.selectedLanguage,
+            selectedSortBy = state.selectedSortBy,
+            onSourceSelected = { viewModel.onAction(SearchAction.OnSourceSelected(it)) },
+            onPlatformSelected = { viewModel.onAction(SearchAction.OnPlatformTypeSelected(it)) },
+            onOpenLanguagePicker = {
+                viewModel.onAction(SearchAction.OnToggleFiltersSheet)
+                viewModel.onAction(SearchAction.OnToggleLanguageSheetVisibility)
+            },
+            onOpenSortPicker = {
+                viewModel.onAction(SearchAction.OnToggleFiltersSheet)
+                viewModel.onAction(SearchAction.OnToggleSortByDialogVisibility)
+            },
+            onReset = {
+                viewModel.onAction(SearchAction.OnLanguageSelected(ProgrammingLanguageUi.All))
+                viewModel.onAction(SearchAction.OnPlatformTypeSelected(SearchPlatformUi.All))
+                viewModel.onAction(SearchAction.OnSortBySelected(SortByUi.BestMatch))
+            },
+            onDismiss = {
+                viewModel.onAction(SearchAction.OnToggleFiltersSheet)
+            },
+        )
+    }
 
     if (state.isLanguageSheetVisible) {
         LanguageFilterBottomSheet(
@@ -229,11 +264,6 @@ fun SearchScreen(
         }
     }
 
-    // Auto-paginate while every loaded repo is filtered out by the global
-    // "Hide seen" tweak. The grid is empty → scroll-based shouldLoadMore can
-    // never fire (totalItemsCount == 0), so without this the user is stranded
-    // on a blank screen with no way to reach page 2+ where unseen repos may
-    // live. Stops once hasMorePages flips false; the banner then takes over.
     LaunchedEffect(
         state.repositories.size,
         state.visibleRepos.size,
@@ -323,14 +353,18 @@ fun SearchScreen(
         },
         containerColor = MaterialTheme.colorScheme.background,
     ) { innerPadding ->
+        Box(
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            contentAlignment = Alignment.TopCenter,
+        ) {
         Column(
             modifier =
                 Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+                    .constrainedContentWidth()
+                    .fillMaxHeight()
                     .padding(horizontal = 16.dp),
         ) {
-            // Clipboard banner
+
             AnimatedVisibility(
                 visible = state.isClipboardBannerVisible && state.clipboardLinks.isNotEmpty(),
                 enter = slideInVertically() + fadeIn(),
@@ -347,7 +381,6 @@ fun SearchScreen(
                 )
             }
 
-            // Detected links from search query
             AnimatedVisibility(
                 visible = state.detectedLinks.isNotEmpty(),
                 enter = slideInVertically() + fadeIn(),
@@ -361,153 +394,7 @@ fun SearchScreen(
                 )
             }
 
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                items(state.availableSources) { source ->
-                    FilterChip(
-                        selected = state.selectedSource == source,
-                        label = {
-                            Text(
-                                text = source.label,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-                        },
-                        onClick = {
-                            onAction(SearchAction.OnSourceSelected(source))
-                        },
-                    )
-                }
-            }
-
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                items(SearchPlatformUi.entries) { sortBy ->
-                    FilterChip(
-                        selected = state.selectedSearchPlatform == sortBy,
-                        label = {
-                            Text(
-                                text = sortBy.name.lowercase().replaceFirstChar { it.uppercase() },
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onBackground,
-                            )
-                        },
-                        onClick = {
-                            onAction(SearchAction.OnPlatformTypeSelected(sortBy))
-                        },
-                    )
-                }
-            }
-
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(Res.string.language_label),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium,
-                    )
-
-                    FilterChip(
-                        selected = state.selectedLanguage != ProgrammingLanguageUi.All,
-                        onClick = {
-                            onAction(SearchAction.OnToggleLanguageSheetVisibility)
-                        },
-                        label = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Text(
-                                    text = stringResource(state.selectedLanguage.label()),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                                Icon(
-                                    imageVector = Icons.Outlined.KeyboardArrowDown,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        },
-                    )
-
-                    if (state.selectedLanguage != ProgrammingLanguageUi.All) {
-                        IconButton(
-                            onClick = {
-                                onAction(SearchAction.OnLanguageSelected(ProgrammingLanguageUi.All))
-                            },
-                            modifier = Modifier.size(32.dp),
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(Res.string.sort_label),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Medium,
-                    )
-
-                    FilterChip(
-                        selected = state.selectedSortBy != SortByUi.BestMatch,
-                        onClick = {
-                            onAction(SearchAction.OnToggleSortByDialogVisibility)
-                        },
-                        label = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Sort,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                                Text(
-                                    text = stringResource(state.selectedSortBy.label()),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                                Icon(
-                                    imageVector = Icons.Outlined.KeyboardArrowDown,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        },
-                    )
-                }
-            }
+            ActiveFiltersStrip(state = state, onAction = onAction)
 
             Spacer(Modifier.height(6.dp))
 
@@ -518,8 +405,10 @@ fun SearchScreen(
                             Res.string.results_found,
                             state.totalCount,
                         ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.outline,
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier =
                         Modifier
                             .fillMaxWidth()
@@ -527,7 +416,6 @@ fun SearchScreen(
                 )
             }
 
-            // Show search history when query is empty
             if (state.query.isBlank() &&
                 state.repositories.isEmpty() &&
                 state.recentSearches.isNotEmpty() &&
@@ -593,10 +481,6 @@ fun SearchScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(text = stringResource(Res.string.no_repositories_found))
 
-                            // Backend already did its own passthrough and still found
-                            // nothing — don't tease a manual explore that would just
-                            // redo the same work. Any other case (false / null for
-                            // older backends) keeps the CTA.
                             if (state.passthroughAttempted != true) {
                                 Spacer(Modifier.height(8.dp))
                                 ExploreFromGithubButton(
@@ -608,12 +492,6 @@ fun SearchScreen(
                     }
                 }
 
-                // Auto-paginate is fetching the next page in the background
-                // because every loaded repo is filtered out. Without an
-                // explicit indicator the content area is blank: the top-level
-                // spinner only renders while repositories.isEmpty(), and the
-                // in-grid load-more spinner is unreachable because the grid
-                // itself only renders when visibleRepos is non-empty.
                 if (state.repositories.isNotEmpty() &&
                     state.visibleRepos.isEmpty() &&
                     state.isHideSeenEnabled &&
@@ -637,16 +515,6 @@ fun SearchScreen(
                     }
                 }
 
-                // All currently loaded API hits filtered out by the global
-                // "Hide seen" tweak AND no further pages remain — results
-                // counter still shows the raw total, so without this banner
-                // the user sees "N results found" above an empty grid and
-                // assumes the app is broken (issue #574). `hasMorePages` is
-                // required because the scroll-based pagination above stalls
-                // when totalItemsCount == 0, so we surface the banner only
-                // when there is genuinely nothing more to fetch. While
-                // hasMorePages is true, the auto-paginate effect below pulls
-                // the next page in the background.
                 if (state.repositories.isNotEmpty() &&
                     state.visibleRepos.isEmpty() &&
                     state.isHideSeenEnabled &&
@@ -685,9 +553,7 @@ fun SearchScreen(
                             columns = StaggeredGridCells.Adaptive(350.dp),
                             verticalItemSpacing = 12.dp,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            // Bottom clearance = nav pill + FAB (~56dp standard M3
-                            // FAB, positioned at bottomNavHeight + 16.dp) + breathing
-                            // room so the last card scrolls fully above both.
+
                             contentPadding =
                                 PaddingValues(
                                     start = 8.dp,
@@ -745,7 +611,6 @@ fun SearchScreen(
                                 }
                             }
 
-                            // "Fetch more from GitHub" explore button
                             if (!state.isLoading && !state.isLoadingMore && state.query.isNotBlank()) {
                                 item {
                                     ExploreFromGithubButton(
@@ -759,6 +624,7 @@ fun SearchScreen(
                 }
             }
         }
+        }
     }
 }
 
@@ -768,23 +634,18 @@ private fun ClipboardBanner(
     onOpenLink: (ParsedGithubLink) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            ),
-        shape = RoundedCornerShape(12.dp),
+    androidx.compose.material3.Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        shape = zed.rainxch.core.presentation.theme.tokens.Radii.row,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+        ),
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-        ) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -793,47 +654,43 @@ private fun ClipboardBanner(
                 Text(
                     text = stringResource(Res.string.clipboard_link_detected),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold,
                 )
-
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(28.dp).clip(CircleShape),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = stringResource(Res.string.dismiss),
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-
             Spacer(Modifier.height(4.dp))
-
             links.forEach { link ->
                 Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { onOpenLink(link) }
-                            .padding(vertical = 6.dp, horizontal = 4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { onOpenLink(link) }
+                        .padding(vertical = 8.dp, horizontal = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Link,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                     Text(
                         text = "${link.owner}/${link.repo}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
                     Icon(
@@ -854,58 +711,55 @@ private fun DetectedLinksSection(
     onOpenLink: (ParsedGithubLink) -> Unit,
 ) {
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
     ) {
         Text(
             text = stringResource(Res.string.detected_links),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(bottom = 4.dp),
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(bottom = 6.dp),
         )
-
         links.forEach { link ->
-            Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
+            androidx.compose.material3.Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 3.dp),
                 onClick = { onOpenLink(link) },
-                colors =
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    ),
-                shape = RoundedCornerShape(8.dp),
+                shape = zed.rainxch.core.presentation.theme.tokens.Radii.row,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                ),
             ) {
                 Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Link,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                     Text(
                         text = "${link.owner}/${link.repo}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         text = stringResource(Res.string.open_in_app),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
             }
@@ -919,14 +773,15 @@ private fun SearchTopbar(
     state: SearchState,
     focusRequester: FocusRequester,
 ) {
+    val activeFilterCount = activeFilterCount(state)
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         TextField(
             value = state.query,
@@ -938,28 +793,30 @@ private fun SearchTopbar(
                     imageVector = Icons.Default.Search,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             },
-            trailingIcon = {
-                IconButton(
-                    onClick = {
-                        onAction(SearchAction.OnClearClick)
-                    },
-                    modifier =
-                        Modifier
-                            .size(24.dp)
+            trailingIcon = if (state.query.isNotEmpty()) {
+                {
+                    IconButton(
+                        onClick = { onAction(SearchAction.OnClearClick) },
+                        modifier = Modifier
+                            .size(28.dp)
                             .clip(CircleShape),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = null,
-                    )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = stringResource(Res.string.dismiss),
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-            },
+            } else null,
             placeholder = {
                 Text(
                     text = stringResource(Res.string.search_repositories_hint),
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     softWrap = false,
                     maxLines = 1,
@@ -967,7 +824,7 @@ private fun SearchTopbar(
                 )
             },
             textStyle =
-                MaterialTheme.typography.bodyLarge.copy(
+                MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurface,
                 ),
             keyboardOptions =
@@ -988,14 +845,159 @@ private fun SearchTopbar(
                 TextFieldDefaults.colors(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 ),
-            shape = CircleShape,
+            shape = RoundedCornerShape(50),
             modifier =
                 Modifier
                     .weight(1f)
                     .focusRequester(focusRequester),
+        )
+
+        FiltersPillButton(
+            activeCount = activeFilterCount,
+            onClick = { onAction(SearchAction.OnToggleFiltersSheet) },
+        )
+    }
+}
+
+private fun activeFilterCount(state: SearchState): Int {
+    var count = 0
+    if (state.selectedSource != SearchSourceUi.GitHub) count++
+    if (state.selectedSearchPlatform != SearchPlatformUi.All) count++
+    if (state.selectedLanguage != ProgrammingLanguageUi.All) count++
+    if (state.selectedSortBy != SortByUi.BestMatch) count++
+    return count
+}
+
+@Composable
+private fun FiltersPillButton(
+    activeCount: Int,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(50)
+    val container =
+        if (activeCount > 0) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.surfaceContainerLow
+    val content =
+        if (activeCount > 0) MaterialTheme.colorScheme.onPrimary
+        else MaterialTheme.colorScheme.onSurface
+    Row(
+        modifier = Modifier
+            .height(48.dp)
+            .clip(shape)
+            .background(container, shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.FilterList,
+            contentDescription = stringResource(Res.string.search_filters_button),
+            modifier = Modifier.size(18.dp),
+            tint = content,
+        )
+        if (activeCount > 0) {
+            Text(
+                text = activeCount.toString(),
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = content,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActiveFiltersStrip(
+    state: SearchState,
+    onAction: (SearchAction) -> Unit,
+) {
+    val items = buildList<Triple<String, () -> Unit, androidx.compose.ui.graphics.vector.ImageVector?>> {
+        if (state.selectedSource != SearchSourceUi.GitHub) {
+            add(Triple(state.selectedSource.label, { onAction(SearchAction.OnSourceSelected(SearchSourceUi.GitHub)) }, null))
+        }
+        if (state.selectedSearchPlatform != SearchPlatformUi.All) {
+            add(
+                Triple(
+                    state.selectedSearchPlatform.name.lowercase().replaceFirstChar { it.uppercase() },
+                    { onAction(SearchAction.OnPlatformTypeSelected(SearchPlatformUi.All)) },
+                    null,
+                ),
+            )
+        }
+        if (state.selectedLanguage != ProgrammingLanguageUi.All) {
+            add(
+                Triple(
+                    "${state.selectedLanguage}",
+                    { onAction(SearchAction.OnLanguageSelected(ProgrammingLanguageUi.All)) },
+                    Icons.Outlined.KeyboardArrowDown,
+                ),
+            )
+        }
+        if (state.selectedSortBy != SortByUi.BestMatch) {
+            add(
+                Triple(
+                    "${state.selectedSortBy}",
+                    { onAction(SearchAction.OnSortBySelected(SortByUi.BestMatch)) },
+                    Icons.AutoMirrored.Filled.Sort,
+                ),
+            )
+        }
+    }
+    if (items.isEmpty()) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        items.forEach { (label, onRemove, leading) ->
+            ActiveFilterChip(label = label, leadingIcon = leading, onRemove = onRemove)
+        }
+    }
+}
+
+@Composable
+private fun ActiveFilterChip(
+    label: String,
+    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector?,
+    onRemove: () -> Unit,
+) {
+    val shape = RoundedCornerShape(50)
+    Row(
+        modifier = Modifier
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), shape)
+            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), shape)
+            .clickable(onClick = onRemove)
+            .padding(start = 12.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (leadingIcon != null) {
+            Icon(
+                imageVector = leadingIcon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = stringResource(Res.string.search_clear_filter_cd),
+            modifier = Modifier.size(14.dp),
+            tint = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -1013,26 +1015,22 @@ private fun ExploreFromGithubButton(
     ) {
         when (status) {
             SearchState.ExploreStatus.IDLE -> {
-                OutlinedButton(onClick = onExplore) {
-                    Icon(
-                        imageVector = Icons.Outlined.TravelExplore,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(text = stringResource(Res.string.fetch_more_from_github))
-                }
+                GhsButton(
+                    onClick = onExplore,
+                    label = stringResource(Res.string.fetch_more_from_github),
+                    variant = GhsButtonVariant.Outline,
+                    leadingIcon = Icons.Outlined.TravelExplore,
+                )
             }
 
             SearchState.ExploreStatus.LOADING -> {
-                OutlinedButton(onClick = {}, enabled = false) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(text = stringResource(Res.string.fetching_from_github))
-                }
+                GhsButton(
+                    onClick = {},
+                    label = stringResource(Res.string.fetching_from_github),
+                    variant = GhsButtonVariant.Outline,
+                    enabled = false,
+                    loading = true,
+                )
             }
 
             SearchState.ExploreStatus.EXHAUSTED -> {

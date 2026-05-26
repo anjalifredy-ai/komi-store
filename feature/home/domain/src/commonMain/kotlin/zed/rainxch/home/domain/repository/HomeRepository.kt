@@ -31,4 +31,6 @@ interface HomeRepository {
         topic: TopicCategory,
         platforms: Set<DiscoveryPlatform>,
     ): Flow<PaginatedDiscoveryRepositories>
+
+    suspend fun getRepositoryById(id: Long): zed.rainxch.core.domain.model.GithubRepoSummary?
 }

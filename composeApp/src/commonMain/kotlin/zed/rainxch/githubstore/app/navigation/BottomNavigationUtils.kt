@@ -5,8 +5,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.jetbrains.compose.resources.StringResource
-import zed.rainxch.core.domain.getPlatform
-import zed.rainxch.core.domain.model.Platform
 import zed.rainxch.githubstore.core.presentation.res.*
 
 data class BottomNavigationItem(
@@ -43,18 +41,7 @@ object BottomNavigationUtils {
                 iconFilled = Icons.Filled.Person2,
                 screen = GithubStoreGraph.ProfileScreen,
             ),
-            BottomNavigationItem(
-                titleRes = Res.string.bottom_nav_profile_tweaks,
-                iconOutlined = Icons.Outlined.Settings,
-                iconFilled = Icons.Filled.Settings,
-                screen = GithubStoreGraph.TweaksScreen,
-            ),
         )
 
-    fun allowedScreens(): List<BottomNavigationItem> =
-        items()
-            .filterNot {
-                getPlatform() != Platform.ANDROID &&
-                    it.screen == GithubStoreGraph.AppsScreen
-            }
+    fun allowedScreens(): List<BottomNavigationItem> = items()
 }

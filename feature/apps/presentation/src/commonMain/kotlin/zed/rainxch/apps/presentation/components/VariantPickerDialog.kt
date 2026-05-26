@@ -28,7 +28,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import zed.rainxch.core.presentation.components.buttons.GhsButton
+import zed.rainxch.core.presentation.components.buttons.GhsButtonSize
+import zed.rainxch.core.presentation.components.buttons.GhsButtonVariant
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,18 +43,6 @@ import zed.rainxch.apps.presentation.AppsState
 import zed.rainxch.core.domain.util.AssetVariant
 import zed.rainxch.githubstore.core.presentation.res.*
 
-/**
- * Dialog for picking the preferred APK variant when an app's release
- * has multiple installable assets. Opened from:
- *  - The advanced settings sheet (explicit user action)
- *  - Tapping Update on an app whose `preferredVariantStale` is true
- *    (the picker takes over so the user resolves the ambiguity before
- *    the wrong APK gets downloaded)
- *
- * Each option corresponds to a stable variant tag derived from the
- * filename. There's also a "Reset to auto" entry that clears the
- * preference and lets the platform installer's auto-picker do its job.
- */
 @Composable
 fun VariantPickerDialog(
     state: AppsState,
@@ -62,6 +52,7 @@ fun VariantPickerDialog(
 
     AlertDialog(
         onDismissRequest = { onAction(AppsAction.OnDismissVariantPicker) },
+        shape = zed.rainxch.core.presentation.theme.shapes.WonkySquircleShape.Dialog,
         title = {
             Column {
                 Text(
@@ -155,22 +146,22 @@ fun VariantPickerDialog(
             }
         },
         confirmButton = {
-            // Cross-link: jump to the asset filter sheet for this app.
-            // The two are conceptually adjacent — filter decides which
-            // assets are *considered*, the variant picker decides which
-            // of the matching assets gets installed. Users debugging
-            // "wrong file installed" need both within reach.
-            TextButton(
+
+            GhsButton(
                 onClick = {
                     onAction(AppsAction.OnDismissVariantPicker)
                     onAction(AppsAction.OnOpenAdvancedSettings(app))
                 },
-            ) {
-                Text(stringResource(Res.string.variant_picker_open_filter))
-            }
-            TextButton(onClick = { onAction(AppsAction.OnDismissVariantPicker) }) {
-                Text(stringResource(Res.string.cancel))
-            }
+                label = stringResource(Res.string.variant_picker_open_filter),
+                variant = GhsButtonVariant.Text,
+                size = GhsButtonSize.Sm,
+            )
+            GhsButton(
+                onClick = { onAction(AppsAction.OnDismissVariantPicker) },
+                label = stringResource(Res.string.cancel),
+                variant = GhsButtonVariant.Text,
+                size = GhsButtonSize.Sm,
+            )
         },
     )
 }
@@ -227,7 +218,7 @@ private fun VariantOptionList(
             .heightIn(min = 0.dp, max = 280.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        // Reset-to-auto entry — placed at the top so it's always discoverable.
+
         item {
             VariantRow(
                 isSelected = current == null,
@@ -242,10 +233,7 @@ private fun VariantOptionList(
         }
 
         items(state.variantPickerOptions, key = { it.id }) { asset ->
-            // The ViewModel guarantees every asset reaching this list has
-            // a non-null, non-empty extract — see openVariantPicker's
-            // pinnableAssets filter. Treat null as a defensive fallback
-            // and skip the row to keep the dialog tappable everywhere.
+
             val variant = AssetVariant.extract(asset.name)
             if (variant.isNullOrEmpty()) return@items
             val isCurrent = variant.equals(current, ignoreCase = true)

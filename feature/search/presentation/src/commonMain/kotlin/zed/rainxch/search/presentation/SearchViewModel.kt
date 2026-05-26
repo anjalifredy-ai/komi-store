@@ -26,18 +26,17 @@ import zed.rainxch.core.domain.model.isReallyInstalled
 import zed.rainxch.core.domain.repository.FavouritesRepository
 import zed.rainxch.core.domain.repository.HiddenReposRepository
 import zed.rainxch.core.domain.repository.InstalledAppsRepository
-import zed.rainxch.core.domain.repository.SearchHistoryRepository
+import zed.rainxch.domain.repository.SearchHistoryRepository
 import zed.rainxch.core.domain.repository.SeenReposRepository
 import zed.rainxch.core.domain.repository.StarredRepository
-import zed.rainxch.core.domain.repository.TelemetryRepository
 import zed.rainxch.core.domain.repository.TweaksRepository
+import zed.rainxch.core.domain.repository.UserSessionRepository
 import zed.rainxch.core.domain.use_cases.SyncInstalledAppsUseCase
 import zed.rainxch.core.domain.utils.ClipboardHelper
 import zed.rainxch.core.domain.utils.ShareManager
 import zed.rainxch.core.presentation.model.DiscoveryRepositoryUi
 import zed.rainxch.core.presentation.utils.toUi
 import zed.rainxch.domain.repository.SearchRepository
-import zed.rainxch.profile.domain.repository.ProfileRepository
 import zed.rainxch.githubstore.core.presentation.res.Res
 import zed.rainxch.githubstore.core.presentation.res.failed_to_share_link
 import zed.rainxch.githubstore.core.presentation.res.link_copied_to_clipboard
@@ -45,7 +44,6 @@ import zed.rainxch.githubstore.core.presentation.res.no_github_link_in_clipboard
 import zed.rainxch.githubstore.core.presentation.res.explore_error
 import zed.rainxch.githubstore.core.presentation.res.rate_limit_exceeded
 import zed.rainxch.githubstore.core.presentation.res.rate_limit_exceeded_retry_in
-import zed.rainxch.githubstore.core.presentation.res.rate_limit_exceeded_signin_hint
 import zed.rainxch.githubstore.core.presentation.res.search_failed
 import zed.rainxch.search.presentation.mappers.toDomain
 import zed.rainxch.search.presentation.model.SearchPlatformUi
@@ -65,8 +63,7 @@ class SearchViewModel(
     private val tweaksRepository: TweaksRepository,
     private val seenReposRepository: SeenReposRepository,
     private val searchHistoryRepository: SearchHistoryRepository,
-    private val telemetryRepository: TelemetryRepository,
-    private val profileRepository: ProfileRepository,
+    private val userSessionRepository: UserSessionRepository,
     private val hiddenReposRepository: HiddenReposRepository,
     private val initialPlatform: SearchPlatformUi? = null,
 ) : ViewModel() {
@@ -76,19 +73,12 @@ class SearchViewModel(
     private var explorePage = 1
     private var lastExploreQuery = ""
 
-    // Cached so each pagination/explore mapping doesn't re-hit
-    // ProfileRepository on every result page. observeCurrentUser() keeps
-    // it in sync with login/logout.
-    @Volatile private var currentUserLogin: String? = null
+    @Volatile
+    private var currentUserLogin: String? = null
 
     private val exploreLog = logger.withTag("SearchExplore")
 
     companion object {
-        // 2 covers common CJK app names that are exactly two characters
-        // (`B站`, `微博`, `抖音`, `美团`, …) which the previous 3-char floor
-        // silently rejected even when the user explicitly tapped the IME
-        // search action (#372). Single-character queries are still gated
-        // because they'd return millions of GitHub results.
         private const val MIN_QUERY_LENGTH = 2
     }
 
@@ -132,7 +122,7 @@ class SearchViewModel(
         return state.repositories
             .filter { repo ->
                 repo.repository.id !in hidden &&
-                    (!needsHideSeenFilter || repo.repository.id !in state.seenRepoIds)
+                        (!needsHideSeenFilter || repo.repository.id !in state.seenRepoIds)
             }
             .toImmutableList()
     }
@@ -173,14 +163,15 @@ class SearchViewModel(
                     .filter { it.isNotBlank() && !it.equals("codeberg.org", ignoreCase = true) }
                     .sorted()
                     .map { zed.rainxch.search.presentation.model.SearchSourceUi.CustomForge(it) }
-                val all = kotlinx.collections.immutable.persistentListOf<zed.rainxch.search.presentation.model.SearchSourceUi>()
-                    .addAll(base + extra)
+                val all =
+                    kotlinx.collections.immutable.persistentListOf<zed.rainxch.search.presentation.model.SearchSourceUi>()
+                        .addAll(base + extra)
                 _state.update { current ->
-                    val current_sel = current.selectedSource
-                    val stillValid = all.contains(current_sel)
+                    val currentSel = current.selectedSource
+                    val stillValid = all.contains(currentSel)
                     current.copy(
                         availableSources = all,
-                        selectedSource = if (stillValid) current_sel
+                        selectedSource = if (stillValid) currentSel
                         else zed.rainxch.search.presentation.model.SearchSourceUi.GitHub,
                     )
                 }
@@ -191,10 +182,6 @@ class SearchViewModel(
     private fun observeHiddenRepos() {
         viewModelScope.launch {
             hiddenReposRepository.getAllHiddenRepoIds().collect { ids ->
-                // Track IDs only — `computeVisibleRepos` already filters
-                // hidden at render time. Removing from `repositories`
-                // would break `OnUndoHideRepository`: once the entity is
-                // gone there's nothing to bring back without re-fetching.
                 _state.update { it.copy(hiddenRepoIds = ids) }
             }
         }
@@ -202,7 +189,7 @@ class SearchViewModel(
 
     private fun observeCurrentUser() {
         viewModelScope.launch {
-            profileRepository.getUser().collect { user ->
+            userSessionRepository.getUser().collect { user ->
                 currentUserLogin = user?.username
                 val login = user?.username
                 _state.update { current ->
@@ -211,11 +198,14 @@ class SearchViewModel(
                             current.repositories
                                 .map { repo ->
                                     repo.copy(
-                                        isCurrentUserOwner =
-                                            login != null &&
-                                                repo.repository.owner.login.equals(login, ignoreCase = true),
+                                        isCurrentUserOwner = login != null &&
+                                                repo.repository.owner.login.equals(
+                                                    login,
+                                                    ignoreCase = true
+                                                ),
                                     )
-                                }.toImmutableList(),
+                                }
+                                .toImmutableList(),
                     )
                 }
             }
@@ -448,7 +438,10 @@ class SearchViewModel(
                                         isSeen = repo.id in seenIds,
                                         isCurrentUserOwner =
                                             currentLogin != null &&
-                                                repo.owner.login.equals(currentLogin, ignoreCase = true),
+                                                    repo.owner.login.equals(
+                                                        currentLogin,
+                                                        ignoreCase = true
+                                                    ),
                                         isUpdateAvailable = apps.any { it.hasActualUpdate() },
                                         repository = repo.toUi(),
                                     )
@@ -491,12 +484,6 @@ class SearchViewModel(
 
                     _state.update {
                         it.copy(isLoading = false, isLoadingMore = false)
-                    }
-
-                    if (isInitial) {
-                        telemetryRepository.recordSearchPerformed(
-                            resultCount = _state.value.repositories.size,
-                        )
                     }
                 } catch (e: RateLimitException) {
                     logger.debug("Rate limit exceeded: ${e.message}")
@@ -555,7 +542,7 @@ class SearchViewModel(
                         it.copy(selectedLanguage = action.language)
                     }
                     currentPage = 1
-    
+
                     performSearch(isInitial = true)
                 }
             }
@@ -600,6 +587,12 @@ class SearchViewModel(
                 }
             }
 
+            SearchAction.OnToggleFiltersSheet -> {
+                _state.update {
+                    it.copy(isFiltersSheetVisible = !it.isFiltersSheetVisible)
+                }
+            }
+
             SearchAction.OnSearchImeClick -> {
                 if (_state.value.detectedLinks.isNotEmpty() && isEntirelyGithubUrls(_state.value.query)) {
                     val link = _state.value.detectedLinks.first()
@@ -638,7 +631,7 @@ class SearchViewModel(
                         it.copy(selectedSortBy = action.sortBy)
                     }
                     currentPage = 1
-    
+
                     performSearch(isInitial = true)
                 }
             }
@@ -649,7 +642,7 @@ class SearchViewModel(
                         it.copy(selectedSortOrder = action.sortOrder)
                     }
                     currentPage = 1
-    
+
                     performSearch(isInitial = true)
                 }
             }
@@ -739,7 +732,6 @@ class SearchViewModel(
             }
 
             is SearchAction.OnRepositoryClick -> {
-                telemetryRepository.recordSearchResultClicked(action.repository.id)
                 // Navigation handled in composable
             }
 
@@ -858,7 +850,7 @@ class SearchViewModel(
 
         exploreLog.debug(
             "click: query='$query' platform=$platformUi " +
-                "page=$explorePage lastQuery='$lastExploreQuery' status=$prevStatus",
+                    "page=$explorePage lastQuery='$lastExploreQuery' status=$prevStatus",
         )
 
         if (query.isBlank()) {
@@ -890,8 +882,8 @@ class SearchViewModel(
                 val existingCount = _state.value.repositories.size
                 exploreLog.debug(
                     "response: items=${exploreResult.repos.size} " +
-                        "returnedPage=${exploreResult.page} hasMore=${exploreResult.hasMore} " +
-                        "existingVisible=$existingCount",
+                            "returnedPage=${exploreResult.page} hasMore=${exploreResult.hasMore} " +
+                            "existingVisible=$existingCount",
                 )
 
                 val before = _state.value.repositories.size
@@ -910,7 +902,7 @@ class SearchViewModel(
                 } else {
                     exploreLog.debug(
                         "-> EXHAUSTED: appended=$added dupes=$dupes " +
-                            "rawItems=${exploreResult.repos.size}",
+                                "rawItems=${exploreResult.repos.size}",
                     )
                     _state.update { it.copy(exploreStatus = SearchState.ExploreStatus.EXHAUSTED) }
                 }
@@ -927,7 +919,8 @@ class SearchViewModel(
     private suspend fun appendExploreResults(
         newRepos: List<zed.rainxch.core.domain.model.GithubRepoSummary>,
     ) {
-        val installedMap = installedAppsRepository.getAllInstalledApps().first().groupBy { it.repoId }
+        val installedMap =
+            installedAppsRepository.getAllInstalledApps().first().groupBy { it.repoId }
         val favoritesMap = favouritesRepository.getAllFavorites().first().associateBy { it.repoId }
         val starredMap = starredRepository.getAllStarred().first().associateBy { it.repoId }
         val seenIds = _state.value.seenRepoIds
@@ -946,7 +939,7 @@ class SearchViewModel(
                     isSeen = repo.id in seenIds,
                     isCurrentUserOwner =
                         currentLogin != null &&
-                            repo.owner.login.equals(currentLogin, ignoreCase = true),
+                                repo.owner.login.equals(currentLogin, ignoreCase = true),
                     isUpdateAvailable = apps.any { it.hasActualUpdate() },
                     repository = repo.toUi(),
                 )
