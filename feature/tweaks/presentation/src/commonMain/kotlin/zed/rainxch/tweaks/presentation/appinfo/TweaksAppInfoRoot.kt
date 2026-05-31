@@ -68,6 +68,7 @@ import zed.rainxch.githubstore.core.presentation.res.tweaks_app_info_privacy_pol
 import zed.rainxch.githubstore.core.presentation.res.tweaks_app_info_source_code_subtitle
 import zed.rainxch.githubstore.core.presentation.res.tweaks_app_info_source_code_title
 import zed.rainxch.githubstore.core.presentation.res.tweaks_app_info_tagline
+import zed.rainxch.githubstore.core.presentation.res.tweaks_app_info_website
 import zed.rainxch.githubstore.core.presentation.res.tweaks_app_info_whats_new_subtitle
 import zed.rainxch.githubstore.core.presentation.res.tweaks_app_info_whats_new_title
 import zed.rainxch.githubstore.core.presentation.res.tweaks_entry_app_info
@@ -308,7 +309,7 @@ private fun CommunityCard(
                     modifier = Modifier.weight(1f),
                 )
                 SocialTile(
-                    label = "Website",
+                    label = stringResource(Res.string.tweaks_app_info_website),
                     iconFallback = Icons.Outlined.Language,
                     accent = GhsAccents.Sage,
                     onClick = onWebsite,
