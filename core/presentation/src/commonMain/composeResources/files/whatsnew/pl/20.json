@@ -13,6 +13,12 @@
         "Przeglądaj pull requesty repozytorium z filtrami otwartych i zamkniętych.",
         "Skróty na ekranie głównym Androida — przytrzymaj ikonę aplikacji, aby przejść od razu do Szukaj, Biblioteki, Ulubionych lub Ostatnio oglądanych, i przeciągnij dowolny jako osobną ikonę."
       ]
+    },
+    {
+      "type": "FIXED",
+      "bullets": [
+        "Debian 12 / Ubuntu 22.04 znów mogą zainstalować pakiet .deb — nie wymaga już bibliotek time64 'libasound2t64' / 'libpng16-16t64', które istnieją tylko w Debianie 13+, więc jeden .deb instaluje się na wszystkich generacjach Debiana."
+      ]
     }
   ]
 }

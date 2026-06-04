@@ -13,6 +13,12 @@
         "Parcourez les pull requests d'un dépôt avec les filtres ouvertes et fermées.",
         "Raccourcis sur l'écran d'accueil Android — appuyez longuement sur l'icône de l'app pour aller directement à Rechercher, votre Bibliothèque, vos Favoris ou les Récemment consultés, et faites-en glisser un comme icône autonome."
       ]
+    },
+    {
+      "type": "FIXED",
+      "bullets": [
+        "Debian 12 / Ubuntu 22.04 peuvent à nouveau installer le .deb — le paquet n'exige plus les bibliothèques time64 'libasound2t64' / 'libpng16-16t64', qui n'existent que sur Debian 13+, donc un seul .deb s'installe sur toutes les générations de Debian."
+      ]
     }
   ]
 }

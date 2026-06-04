@@ -13,6 +13,12 @@
         "Browse a repository's Pull requests with open and closed filters.",
         "Android home-screen shortcuts — long-press the app icon to jump straight to Search, your Library, Favourites, or Recently Viewed, and drag any of them out as a standalone launcher icon."
       ]
+    },
+    {
+      "type": "FIXED",
+      "bullets": [
+        "Debian 12 / Ubuntu 22.04 can now install the .deb again — the package no longer demands the time64 'libasound2t64' / 'libpng16-16t64' libraries that only exist on Debian 13+, so a single .deb installs across every Debian generation."
+      ]
     }
   ]
 }
