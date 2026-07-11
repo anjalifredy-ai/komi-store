@@ -2,7 +2,7 @@
   <br/>
   <img src="media-resources/app_icon.png" width="200" alt="Komi Store app icon" />
 
-# Komi Store
+# REMON STORE
 
 </div>
 
